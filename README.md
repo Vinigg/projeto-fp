@@ -2,7 +2,7 @@
 
 O objetivo é criar um sistema web que auxilie escolas públicas ou comunitárias na organização e gestão de seus recursos educacionais, contribuindo com o ODS 4 – Educação de Qualidade.
 
-## 🎯 Desafio
+## Desafio
 
 O sistema permite o cadastro, consulta, atualização e exclusão (CRUD) de informações referentes a:
 
@@ -18,13 +18,16 @@ Listagem de alunos por turma
 
 Média geral de desempenho dos alunos
 
-## 💻 Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 Frontend: Bootstrap
 
 Backend / API: Python
 
 Banco de Dados: PostgreSQL
+
+## Lider
+- Pedro Augusto Carvalho Araujo
 
 ## Equipe
 
