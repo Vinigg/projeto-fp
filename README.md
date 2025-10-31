@@ -22,6 +22,16 @@ Média geral de desempenho dos alunos
 
 Frontend: Bootstrap
 
-Backend / API: Python (FastAPI)
+Backend / API: Python
 
 Banco de Dados: PostgreSQL
+
+## Equipe
+
+- Vinícius Wagner Gomes Germano
+- Emily Raquel Marques da Silva
+- Cecilia Victoria Lopes dos Santos
+- Vitoria Gabrielly Gomes da Silva
+- Pedro Augusto Carvalho Araujo
+- Abednego Correia da Silva
+- Matheus do Nascimento Gomes Vaz
