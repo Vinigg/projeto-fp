@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professores - Sistema Escolar</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="assets/css/styles.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">
+        <i class="bi bi-book"></i> Sistema Escolar
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">
+              <i class="bi bi-house-door"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="alunos.html">
+              <i class="bi bi-people"></i> Alunos
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="professores.html">
+              <i class="bi bi-person-badge"></i> Professores
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="turmas.html">
+              <i class="bi bi-collection"></i> Turmas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="disciplinas.html">
+              <i class="bi bi-journal-text"></i> Disciplinas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="notas.html">
+              <i class="bi bi-clipboard-check"></i> Notas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="relatorios.html">
+              <i class="bi bi-bar-chart"></i> Relatórios
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container py-4">
+    <div class="row mb-4">
+      <div class="col">
+        <h1 class="h3">
+          <i class="bi bi-person-badge-fill"></i> Gerenciamento de Professores
+        </h1>
+        <p class="text-muted">Cadastro e gestão de professores</p>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalProfessor" onclick="limparFormulario()">
+          <i class="bi bi-person-plus-fill"></i> Novo Professor
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabela de Professores -->
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead class="table-success">
+              <tr>
+                <th>ID</th>
+                <th>Nome Completo</th>
+                <th>CPF</th>
+                <th>Especialização</th>
+                <th>Turma Responsável</th>
+                <th>Data Contratação</th>
+                <th>Status</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyProfessores">
+              <tr>
+                <td colspan="8" class="text-center">
+                  <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Professor -->
+  <div class="modal fade" id="modalProfessor" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <form class="modal-content" id="formProfessor">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-person-badge"></i> <span id="tituloModal">Cadastrar Professor</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="professorId">
+          
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label for="professorNome" class="form-label">Nome Completo *</label>
+              <input type="text" class="form-control" id="professorNome" required 
+                     placeholder="Ex: Maria dos Santos">
+            </div>
+
+            <div class="col-md-4">
+              <label for="professorCpf" class="form-label">CPF *</label>
+              <input type="text" class="form-control" id="professorCpf" required 
+                     placeholder="12345678901" maxlength="11">
+            </div>
+
+            <div class="col-md-6">
+              <label for="professorEspecializacao" class="form-label">Área de Especialização *</label>
+              <input type="text" class="form-control" id="professorEspecializacao" required 
+                     placeholder="Ex: Matemática">
+            </div>
+
+            <div class="col-md-6">
+              <label for="professorDataContratacao" class="form-label">Data de Contratação *</label>
+              <input type="date" class="form-control" id="professorDataContratacao" required>
+            </div>
+
+            <div class="col-md-6">
+              <label for="professorTurmaResponsavel" class="form-label">Turma Responsável</label>
+              <select class="form-select" id="professorTurmaResponsavel">
+                <option value="">Nenhuma</option>
+              </select>
+              <small class="form-text text-muted">Opcional - Turma pela qual é responsável</small>
+            </div>
+
+            <div class="col-md-6">
+              <label for="professorAtivo" class="form-label">Status</label>
+              <select class="form-select" id="professorAtivo" required>
+                <option value="true">Ativo</option>
+                <option value="false">Inativo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle"></i> Salvar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import { api, feedback } from './assets/js/api.js';
+
+    let turmas = [];
+    let modalInstance = null;
+
+    /**
+     * Carrega lista de professores
+     */
+    async function listarProfessores() {
+      try {
+        const professores = await api.get('/professores/');
+        const tbody = document.getElementById('tbodyProfessores');
+
+        if (professores.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8" class="text-center text-muted">
+                <i class="bi bi-inbox"></i> Nenhum professor cadastrado
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = professores.map(professor => {
+          const turma = turmas.find(t => t.id === professor.turma_responsavel);
+          const turmaNome = turma ? `${turma.nome} - ${turma.ano}` : 'Nenhuma';
+          
+          return `
+            <tr>
+              <td>${professor.id}</td>
+              <td><strong>${professor.nome_completo}</strong></td>
+              <td>${formatarCPF(professor.cpf)}</td>
+              <td><span class="badge bg-info">${professor.area_especializacao}</span></td>
+              <td>${turmaNome}</td>
+              <td>${formatarData(professor.data_contratacao)}</td>
+              <td>
+                <span class="badge bg-${professor.ativo ? 'success' : 'secondary'}">
+                  ${professor.ativo ? 'Ativo' : 'Inativo'}
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary" onclick="editarProfessor(${professor.id})" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="excluirProfessor(${professor.id})" title="Excluir">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Erro ao listar professores:', error);
+        feedback.error('Erro ao carregar lista de professores');
+      }
+    }
+
+    /**
+     * Carrega turmas para o select
+     */
+    async function carregarTurmas() {
+      try {
+        turmas = await api.get('/turmas/');
+        const select = document.getElementById('professorTurmaResponsavel');
+        
+        select.innerHTML = '<option value="">Nenhuma</option>' +
+          turmas.map(t => `<option value="${t.id}">${t.nome} - ${t.ano}</option>`).join('');
+      } catch (error) {
+        console.error('Erro ao carregar turmas:', error);
+      }
+    }
+
+    /**
+     * Limpa formulário
+     */
+    window.limparFormulario = function() {
+      document.getElementById('formProfessor').reset();
+      document.getElementById('professorId').value = '';
+      document.getElementById('tituloModal').textContent = 'Cadastrar Professor';
+      document.getElementById('professorAtivo').value = 'true';
+    };
+
+    /**
+     * Editar professor
+     */
+    window.editarProfessor = async function(id) {
+      try {
+        const professor = await api.get(`/professores/${id}/`);
+        
+        document.getElementById('professorId').value = professor.id;
+        document.getElementById('professorNome').value = professor.nome_completo;
+        document.getElementById('professorCpf').value = professor.cpf;
+        document.getElementById('professorEspecializacao').value = professor.area_especializacao;
+        document.getElementById('professorDataContratacao').value = professor.data_contratacao;
+        document.getElementById('professorTurmaResponsavel').value = professor.turma_responsavel || '';
+        document.getElementById('professorAtivo').value = professor.ativo.toString();
+        document.getElementById('tituloModal').textContent = 'Editar Professor';
+
+        modalInstance = new bootstrap.Modal(document.getElementById('modalProfessor'));
+        modalInstance.show();
+      } catch (error) {
+        console.error('Erro ao carregar professor:', error);
+        feedback.error('Erro ao carregar dados do professor');
+      }
+    };
+
+    /**
+     * Excluir professor
+     */
+    window.excluirProfessor = async function(id) {
+      if (!feedback.confirm('Tem certeza que deseja excluir este professor?')) {
+        return;
+      }
+
+      try {
+        await api.delete(`/professores/${id}/`);
+        feedback.success('Professor excluído com sucesso!');
+        listarProfessores();
+      } catch (error) {
+        console.error('Erro ao excluir professor:', error);
+        feedback.error('Erro ao excluir professor');
+      }
+    };
+
+    /**
+     * Salvar professor (criar ou atualizar)
+     */
+    document.getElementById('formProfessor').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById('professorId').value;
+      const turmaResponsavel = document.getElementById('professorTurmaResponsavel').value;
+      
+      const dados = {
+        nome_completo: document.getElementById('professorNome').value,
+        cpf: document.getElementById('professorCpf').value,
+        area_especializacao: document.getElementById('professorEspecializacao').value,
+        data_contratacao: document.getElementById('professorDataContratacao').value,
+        turma_responsavel: turmaResponsavel ? parseInt(turmaResponsavel) : null,
+        ativo: document.getElementById('professorAtivo').value === 'true'
+      };
+
+      try {
+        if (id) {
+          await api.put(`/professores/${id}/`, dados);
+          feedback.success('Professor atualizado com sucesso!');
+        } else {
+          await api.post('/professores/', dados);
+          feedback.success('Professor cadastrado com sucesso!');
+        }
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalProfessor'));
+        modal.hide();
+        listarProfessores();
+      } catch (error) {
+        console.error('Erro ao salvar professor:', error);
+        feedback.error('Erro ao salvar professor. Verifique os dados.');
+      }
+    });
+
+    /**
+     * Formatar CPF
+     */
+    function formatarCPF(cpf) {
+      return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+
+    /**
+     * Formatar data
+     */
+    function formatarData(data) {
+      return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+    }
+
+    // Inicializar
+    carregarTurmas().then(listarProfessores);
+  </script>
+</body>
+</html>

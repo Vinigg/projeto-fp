@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatórios - Sistema Escolar</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="assets/css/styles.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">
+        <i class="bi bi-book"></i> Sistema Escolar
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">
+              <i class="bi bi-house-door"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="alunos.html">
+              <i class="bi bi-people"></i> Alunos
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="professores.html">
+              <i class="bi bi-person-badge"></i> Professores
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="turmas.html">
+              <i class="bi bi-collection"></i> Turmas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="disciplinas.html">
+              <i class="bi bi-journal-text"></i> Disciplinas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="notas.html">
+              <i class="bi bi-clipboard-check"></i> Notas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="relatorios.html">
+              <i class="bi bi-bar-chart"></i> Relatórios
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container py-4">
+    <div class="row mb-4">
+      <div class="col">
+        <h1 class="h3">
+          <i class="bi bi-bar-chart-fill"></i> Relatórios e Estatísticas
+        </h1>
+        <p class="text-muted">Análises e consultas do sistema escolar</p>
+      </div>
+    </div>
+
+    <!-- Seletor de Relatório -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body">
+        <h6 class="card-title mb-3">
+          <i class="bi bi-filter"></i> Selecione o Relatório
+        </h6>
+        <div class="row g-3">
+          <div class="col-md-8">
+            <select class="form-select" id="tipoRelatorio">
+              <option value="geral">Estatísticas Gerais</option>
+              <option value="alunos-turma">Alunos por Turma</option>
+              <option value="notas-disciplina">Notas por Disciplina</option>
+              <option value="desempenho-alunos">Desempenho dos Alunos</option>
+              <option value="professores-turmas">Professores e Turmas</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-primary w-100" onclick="gerarRelatorio()">
+              <i class="bi bi-file-earmark-bar-graph"></i> Gerar Relatório
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Área de Exibição do Relatório -->
+    <div id="relatorioContainer">
+      <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle"></i> Selecione um relatório acima para visualizar
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import { api, feedback } from './assets/js/api.js';
+
+    let alunos = [];
+    let professores = [];
+    let turmas = [];
+    let disciplinas = [];
+    let notas = [];
+
+    /**
+     * Carrega todos os dados
+     */
+    async function carregarDados() {
+      try {
+        [alunos, professores, turmas, disciplinas, notas] = await Promise.all([
+          api.get('/alunos/'),
+          api.get('/professores/'),
+          api.get('/turmas/'),
+          api.get('/disciplinas/'),
+          api.get('/notas/')
+        ]);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        feedback.error('Erro ao carregar dados para relatórios');
+      }
+    }
+
+    /**
+     * Gera relatório selecionado
+     */
+    window.gerarRelatorio = async function() {
+      const tipo = document.getElementById('tipoRelatorio').value;
+      const container = document.getElementById('relatorioContainer');
+
+      container.innerHTML = `
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Gerando relatório...</span>
+          </div>
+        </div>
+      `;
+
+      await carregarDados();
+
+      switch(tipo) {
+        case 'geral':
+          container.innerHTML = gerarRelatorioGeral();
+          break;
+        case 'alunos-turma':
+          container.innerHTML = gerarRelatorioAlunosPorTurma();
+          break;
+        case 'notas-disciplina':
+          container.innerHTML = gerarRelatorioNotasPorDisciplina();
+          break;
+        case 'desempenho-alunos':
+          container.innerHTML = gerarRelatorioDesempenhoAlunos();
+          break;
+        case 'professores-turmas':
+          container.innerHTML = gerarRelatorioProfessoresTurmas();
+          break;
+      }
+    };
+
+    /**
+     * Relatório: Estatísticas Gerais
+     */
+    function gerarRelatorioGeral() {
+      const mediaGeral = notas.length > 0
+        ? (notas.reduce((sum, n) => sum + parseFloat(n.valor), 0) / notas.length).toFixed(2)
+        : '0.00';
+      
+      const alunosAtivos = alunos.filter(a => a.status === 'Ativo').length;
+      const professoresAtivos = professores.filter(p => p.ativo).length;
+
+      return `
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-graph-up"></i> Estatísticas Gerais</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <h6>Total de Alunos</h6>
+                    <h2 class="text-primary">${alunos.length}</h2>
+                    <small class="text-muted">Ativos: ${alunosAtivos}</small>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <h6>Total de Professores</h6>
+                    <h2 class="text-success">${professores.length}</h2>
+                    <small class="text-muted">Ativos: ${professoresAtivos}</small>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <h6>Total de Turmas</h6>
+                    <h2 class="text-warning">${turmas.length}</h2>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <h6>Média Geral</h6>
+                    <h2 class="text-danger">${mediaGeral}</h2>
+                    <small class="text-muted">${notas.length} notas</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <hr>
+            <h6 class="mt-4">Disciplinas (${disciplinas.length})</h6>
+            <div class="row">
+              ${disciplinas.map(d => `
+                <div class="col-md-4 mb-2">
+                  <span class="badge bg-info">${d.nome}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Relatório: Alunos por Turma
+     */
+    function gerarRelatorioAlunosPorTurma() {
+      return `
+        <div class="card shadow-sm">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-people"></i> Alunos por Turma</h5>
+          </div>
+          <div class="card-body">
+            ${turmas.map(turma => {
+              const alunosDaTurma = alunos.filter(a => a.turma === turma.id);
+              const professor = professores.find(p => p.turma_responsavel === turma.id);
+              
+              return `
+                <div class="mb-4">
+                  <h6 class="bg-light p-2 rounded">
+                    <i class="bi bi-collection"></i> ${turma.nome} - ${turma.ano}
+                    <span class="badge bg-primary float-end">${alunosDaTurma.length} alunos</span>
+                  </h6>
+                  ${professor ? `<p class="mb-2"><strong>Professor Responsável:</strong> ${professor.nome_completo}</p>` : ''}
+                  ${alunosDaTurma.length > 0 ? `
+                    <div class="table-responsive">
+                      <table class="table table-sm table-striped">
+                        <thead>
+                          <tr>
+                            <th>Nome</th>
+                            <th>CPF</th>
+                            <th>Status</th>
+                            <th>Média</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${alunosDaTurma.map(aluno => `
+                            <tr>
+                              <td>${aluno.nome_completo}</td>
+                              <td>${formatarCPF(aluno.cpf)}</td>
+                              <td><span class="badge bg-${aluno.status === 'Ativo' ? 'success' : 'secondary'}">${aluno.status}</span></td>
+                              <td><span class="badge bg-info">${aluno.media_geral}</span></td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                    </div>
+                  ` : '<p class="text-muted">Nenhum aluno matriculado</p>'}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Relatório: Notas por Disciplina
+     */
+    function gerarRelatorioNotasPorDisciplina() {
+      return `
+        <div class="card shadow-sm">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-journal-text"></i> Notas por Disciplina</h5>
+          </div>
+          <div class="card-body">
+            ${disciplinas.map(disciplina => {
+              const notasDisciplina = notas.filter(n => n.disciplina === disciplina.id);
+              const media = notasDisciplina.length > 0
+                ? (notasDisciplina.reduce((sum, n) => sum + parseFloat(n.valor), 0) / notasDisciplina.length).toFixed(2)
+                : '0.00';
+              
+              const aprovados = notasDisciplina.filter(n => parseFloat(n.valor) >= 7).length;
+              const recuperacao = notasDisciplina.filter(n => parseFloat(n.valor) >= 5 && parseFloat(n.valor) < 7).length;
+              const reprovados = notasDisciplina.filter(n => parseFloat(n.valor) < 5).length;
+
+              return `
+                <div class="mb-4">
+                  <h6 class="bg-light p-2 rounded">
+                    <i class="bi bi-book"></i> ${disciplina.nome}
+                    <span class="badge bg-secondary float-end">${notasDisciplina.length} notas</span>
+                  </h6>
+                  ${notasDisciplina.length > 0 ? `
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-3">
+                        <div class="card bg-light">
+                          <div class="card-body text-center p-2">
+                            <small>Média</small>
+                            <h5 class="mb-0">${media}</h5>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                          <div class="card-body text-center p-2">
+                            <small>Aprovados (≥7)</small>
+                            <h5 class="mb-0">${aprovados}</h5>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="card bg-warning">
+                          <div class="card-body text-center p-2">
+                            <small>Recuperação (5-6.9)</small>
+                            <h5 class="mb-0">${recuperacao}</h5>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                          <div class="card-body text-center p-2">
+                            <small>Reprovados (&lt;5)</small>
+                            <h5 class="mb-0">${reprovados}</h5>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ` : '<p class="text-muted">Nenhuma nota lançada</p>'}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Relatório: Desempenho dos Alunos
+     */
+    function gerarRelatorioDesempenhoAlunos() {
+      const alunosComNotas = alunos.map(aluno => {
+        const notasAluno = notas.filter(n => n.aluno === aluno.id);
+        const media = notasAluno.length > 0
+          ? (notasAluno.reduce((sum, n) => sum + parseFloat(n.valor), 0) / notasAluno.length).toFixed(2)
+          : '0.00';
+        
+        return {
+          ...aluno,
+          totalNotas: notasAluno.length,
+          mediaCalculada: parseFloat(media)
+        };
+      }).sort((a, b) => b.mediaCalculada - a.mediaCalculada);
+
+      return `
+        <div class="card shadow-sm">
+          <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="bi bi-trophy"></i> Desempenho dos Alunos</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th>Posição</th>
+                    <th>Nome</th>
+                    <th>Turma</th>
+                    <th>Total Notas</th>
+                    <th>Média</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${alunosComNotas.map((aluno, index) => {
+                    const turma = turmas.find(t => t.id === aluno.turma);
+                    const statusNota = aluno.mediaCalculada >= 7 ? 'success' : 
+                                      aluno.mediaCalculada >= 5 ? 'warning' : 'danger';
+                    const posicao = index + 1;
+                    const medalha = posicao === 1 ? '🥇' : posicao === 2 ? '🥈' : posicao === 3 ? '🥉' : posicao;
+
+                    return `
+                      <tr>
+                        <td><strong>${medalha}</strong></td>
+                        <td>${aluno.nome_completo}</td>
+                        <td>${turma ? turma.nome : 'N/A'}</td>
+                        <td><span class="badge bg-secondary">${aluno.totalNotas}</span></td>
+                        <td><span class="badge bg-${statusNota} fs-6">${aluno.mediaCalculada.toFixed(2)}</span></td>
+                        <td><span class="badge bg-${aluno.status === 'Ativo' ? 'success' : 'secondary'}">${aluno.status}</span></td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Relatório: Professores e Turmas
+     */
+    function gerarRelatorioProfessoresTurmas() {
+      return `
+        <div class="card shadow-sm">
+          <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-person-badge"></i> Professores e Turmas</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Especialização</th>
+                    <th>Turma Responsável</th>
+                    <th>Alunos</th>
+                    <th>Data Contratação</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${professores.map(professor => {
+                    const turma = turmas.find(t => t.id === professor.turma_responsavel);
+                    const alunosDaTurma = turma ? alunos.filter(a => a.turma === turma.id).length : 0;
+
+                    return `
+                      <tr>
+                        <td><strong>${professor.nome_completo}</strong></td>
+                        <td><span class="badge bg-info">${professor.area_especializacao}</span></td>
+                        <td>${turma ? `${turma.nome} - ${turma.ano}` : '<em class="text-muted">Nenhuma</em>'}</td>
+                        <td>${alunosDaTurma > 0 ? `<span class="badge bg-primary">${alunosDaTurma}</span>` : '-'}</td>
+                        <td>${formatarData(professor.data_contratacao)}</td>
+                        <td><span class="badge bg-${professor.ativo ? 'success' : 'secondary'}">${professor.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Formatar CPF
+     */
+    function formatarCPF(cpf) {
+      return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+
+    /**
+     * Formatar data
+     */
+    function formatarData(data) {
+      return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+    }
+
+    // Carregar dados iniciais
+    carregarDados();
+  </script>
+</body>
+</html>
