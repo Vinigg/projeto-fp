@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notas - Sistema Escolar</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="assets/css/styles.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">
+        <i class="bi bi-book"></i> Sistema Escolar
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">
+              <i class="bi bi-house-door"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="alunos.html">
+              <i class="bi bi-people"></i> Alunos
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="professores.html">
+              <i class="bi bi-person-badge"></i> Professores
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="turmas.html">
+              <i class="bi bi-collection"></i> Turmas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="disciplinas.html">
+              <i class="bi bi-journal-text"></i> Disciplinas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="notas.html">
+              <i class="bi bi-clipboard-check"></i> Notas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="relatorios.html">
+              <i class="bi bi-bar-chart"></i> Relatórios
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container py-4">
+    <div class="row mb-4">
+      <div class="col">
+        <h1 class="h3">
+          <i class="bi bi-clipboard-check-fill"></i> Gerenciamento de Notas
+        </h1>
+        <p class="text-muted">Lançamento e gestão de notas</p>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalNota" onclick="limparFormulario()">
+          <i class="bi bi-clipboard-plus"></i> Lançar Nota
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body">
+        <h6 class="card-title mb-3">
+          <i class="bi bi-funnel"></i> Filtros
+        </h6>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="filtroAluno" class="form-label">Aluno</label>
+            <select class="form-select" id="filtroAluno">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="filtroDisciplina" class="form-label">Disciplina</label>
+            <select class="form-select" id="filtroDisciplina">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button class="btn btn-primary w-100" onclick="aplicarFiltros()">
+              <i class="bi bi-search"></i> Filtrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela de Notas -->
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead class="table-secondary">
+              <tr>
+                <th>ID</th>
+                <th>Aluno</th>
+                <th>Disciplina</th>
+                <th>Nota</th>
+                <th>Data Avaliação</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyNotas">
+              <tr>
+                <td colspan="6" class="text-center">
+                  <div class="spinner-border text-secondary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Nota -->
+  <div class="modal fade" id="modalNota" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formNota">
+        <div class="modal-header bg-secondary text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-clipboard-check"></i> <span id="tituloModal">Lançar Nota</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="notaId">
+          
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="notaAluno" class="form-label">Aluno *</label>
+              <select class="form-select" id="notaAluno" required>
+                <option value="">Selecione um aluno</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label for="notaDisciplina" class="form-label">Disciplina *</label>
+              <select class="form-select" id="notaDisciplina" required>
+                <option value="">Selecione uma disciplina</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label for="notaValor" class="form-label">Nota *</label>
+              <input type="number" class="form-control" id="notaValor" required 
+                     step="0.01" min="0" max="10" placeholder="0.00">
+              <small class="form-text text-muted">De 0 a 10</small>
+            </div>
+
+            <div class="col-md-6">
+              <label for="notaDataAvaliacao" class="form-label">Data Avaliação *</label>
+              <input type="date" class="form-control" id="notaDataAvaliacao" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle"></i> Salvar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import { api, feedback } from './assets/js/api.js';
+
+    let notas = [];
+    let alunos = [];
+    let disciplinas = [];
+
+    /**
+     * Carrega lista de notas
+     */
+    async function listarNotas(filtroAlunoId = '', filtroDisciplinaId = '') {
+      try {
+        let notasFiltradas = [...notas];
+
+        // Aplicar filtros
+        if (filtroAlunoId) {
+          notasFiltradas = notasFiltradas.filter(n => n.aluno == filtroAlunoId);
+        }
+        if (filtroDisciplinaId) {
+          notasFiltradas = notasFiltradas.filter(n => n.disciplina == filtroDisciplinaId);
+        }
+
+        const tbody = document.getElementById('tbodyNotas');
+
+        if (notasFiltradas.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" class="text-center text-muted">
+                <i class="bi bi-inbox"></i> Nenhuma nota encontrada
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = notasFiltradas.map(nota => {
+          const aluno = alunos.find(a => a.id === nota.aluno);
+          const disciplina = disciplinas.find(d => d.id === nota.disciplina);
+          
+          const notaColor = nota.valor >= 7 ? 'success' : nota.valor >= 5 ? 'warning' : 'danger';
+
+          return `
+            <tr>
+              <td>${nota.id}</td>
+              <td><strong>${aluno ? aluno.nome_completo : 'N/A'}</strong></td>
+              <td><span class="badge bg-info">${disciplina ? disciplina.nome : 'N/A'}</span></td>
+              <td><span class="badge bg-${notaColor} fs-6">${nota.valor}</span></td>
+              <td>${formatarData(nota.data_avaliacao)}</td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary" onclick="editarNota(${nota.id})" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="excluirNota(${nota.id})" title="Excluir">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Erro ao listar notas:', error);
+        feedback.error('Erro ao carregar lista de notas');
+      }
+    }
+
+    /**
+     * Carrega dados necessários
+     */
+    async function carregarDados() {
+      try {
+        [notas, alunos, disciplinas] = await Promise.all([
+          api.get('/notas/'),
+          api.get('/alunos/'),
+          api.get('/disciplinas/')
+        ]);
+
+        // Preencher selects de filtros
+        const filtroAluno = document.getElementById('filtroAluno');
+        filtroAluno.innerHTML = '<option value="">Todos</option>' +
+          alunos.map(a => `<option value="${a.id}">${a.nome_completo}</option>`).join('');
+
+        const filtroDisciplina = document.getElementById('filtroDisciplina');
+        filtroDisciplina.innerHTML = '<option value="">Todas</option>' +
+          disciplinas.map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
+
+        // Preencher selects do modal
+        const notaAluno = document.getElementById('notaAluno');
+        notaAluno.innerHTML = '<option value="">Selecione um aluno</option>' +
+          alunos.map(a => `<option value="${a.id}">${a.nome_completo}</option>`).join('');
+
+        const notaDisciplina = document.getElementById('notaDisciplina');
+        notaDisciplina.innerHTML = '<option value="">Selecione uma disciplina</option>' +
+          disciplinas.map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
+
+        listarNotas();
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        feedback.error('Erro ao carregar dados necessários');
+      }
+    }
+
+    /**
+     * Aplicar filtros
+     */
+    window.aplicarFiltros = function() {
+      const alunoId = document.getElementById('filtroAluno').value;
+      const disciplinaId = document.getElementById('filtroDisciplina').value;
+      listarNotas(alunoId, disciplinaId);
+    };
+
+    /**
+     * Limpa formulário
+     */
+    window.limparFormulario = function() {
+      document.getElementById('formNota').reset();
+      document.getElementById('notaId').value = '';
+      document.getElementById('tituloModal').textContent = 'Lançar Nota';
+      document.getElementById('notaDataAvaliacao').value = new Date().toISOString().split('T')[0];
+    };
+
+    /**
+     * Editar nota
+     */
+    window.editarNota = async function(id) {
+      try {
+        const nota = await api.get(`/notas/${id}/`);
+        
+        document.getElementById('notaId').value = nota.id;
+        document.getElementById('notaAluno').value = nota.aluno;
+        document.getElementById('notaDisciplina').value = nota.disciplina;
+        document.getElementById('notaValor').value = nota.valor;
+        document.getElementById('notaDataAvaliacao').value = nota.data_avaliacao;
+        document.getElementById('tituloModal').textContent = 'Editar Nota';
+
+        new bootstrap.Modal(document.getElementById('modalNota')).show();
+      } catch (error) {
+        console.error('Erro ao carregar nota:', error);
+        feedback.error('Erro ao carregar dados da nota');
+      }
+    };
+
+    /**
+     * Excluir nota
+     */
+    window.excluirNota = async function(id) {
+      if (!feedback.confirm('Tem certeza que deseja excluir esta nota?')) {
+        return;
+      }
+
+      try {
+        await api.delete(`/notas/${id}/`);
+        feedback.success('Nota excluída com sucesso!');
+        carregarDados();
+      } catch (error) {
+        console.error('Erro ao excluir nota:', error);
+        feedback.error('Erro ao excluir nota');
+      }
+    };
+
+    /**
+     * Salvar nota (criar ou atualizar)
+     */
+    document.getElementById('formNota').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById('notaId').value;
+      const dados = {
+        aluno: parseInt(document.getElementById('notaAluno').value),
+        disciplina: parseInt(document.getElementById('notaDisciplina').value),
+        valor: parseFloat(document.getElementById('notaValor').value),
+        data_avaliacao: document.getElementById('notaDataAvaliacao').value
+      };
+
+      try {
+        if (id) {
+          await api.put(`/notas/${id}/`, dados);
+          feedback.success('Nota atualizada com sucesso!');
+        } else {
+          await api.post('/notas/', dados);
+          feedback.success('Nota lançada com sucesso!');
+        }
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNota'));
+        modal.hide();
+        carregarDados();
+      } catch (error) {
+        console.error('Erro ao salvar nota:', error);
+        feedback.error('Erro ao salvar nota. Verifique os dados.');
+      }
+    });
+
+    /**
+     * Formatar data
+     */
+    function formatarData(data) {
+      return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+    }
+
+    // Inicializar
+    carregarDados();
+  </script>
+</body>
+</html>
