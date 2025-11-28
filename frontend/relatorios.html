@@ -79,11 +79,11 @@
         </h6>
         <div class="row g-3">
           <div class="col-md-8">
-            <select class="form-select" id="tipoRelatorio">
+            <select class="form-select" id="tipoRelatorio" onchange="alternarFiltroTurma()">
               <option value="geral">Estatísticas Gerais</option>
               <option value="alunos-turma">Alunos por Turma</option>
               <option value="notas-disciplina">Notas por Disciplina</option>
-              <option value="desempenho-alunos">Desempenho dos Alunos</option>
+              <option value="desempenho-alunos">Desempenho dos Alunos (Média Global)</option>
               <option value="professores-turmas">Professores e Turmas</option>
             </select>
           </div>
@@ -92,6 +92,15 @@
               <i class="bi bi-file-earmark-bar-graph"></i> Gerar Relatório
             </button>
           </div>
+        </div>
+        <!-- NOVO FILTRO DINÂMICO -->
+        <div class="row g-3 mt-3" id="filtroTurmaContainer" style="display:none;">
+            <div class="col-md-12">
+                <label for="filtroTurma" class="form-label">Selecione a Turma</label>
+                <select class="form-select" id="filtroTurma">
+                    <option value="">Carregando Turmas...</option>
+                </select>
+            </div>
         </div>
       </div>
     </div>
@@ -106,31 +115,53 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
+    // Confirmação de que o caminho é `./assets/js/api.js`
     import { api, feedback } from './assets/js/api.js';
 
+    // Dados de Cache
     let alunos = [];
     let professores = [];
     let turmas = [];
     let disciplinas = [];
-    let notas = [];
+    let notas = []; // Notas só são usadas para o Relatório Geral
 
     /**
-     * Carrega todos os dados
+     * Carrega os dados cadastrais básicos.
+     * Alunos e Notas não são carregados aqui para evitar sobrecarga,
+     * exceto para o Relatório Geral.
      */
     async function carregarDados() {
       try {
-        [alunos, professores, turmas, disciplinas, notas] = await Promise.all([
-          api.get('/alunos/'),
+        [professores, turmas, disciplinas] = await Promise.all([
           api.get('/professores/'),
           api.get('/turmas/'),
           api.get('/disciplinas/'),
-          api.get('/notas/')
         ]);
+
+        // Preencher o seletor de turmas
+        const selectTurma = document.getElementById('filtroTurma');
+        selectTurma.innerHTML = '<option value="">Selecione uma Turma</option>' +
+          turmas.map(t => `<option value="${t.id}">${t.nome} - ${t.ano}</option>`).join('');
+
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        feedback.error('Erro ao carregar dados para relatórios');
+        console.error('Erro ao carregar dados cadastrais:', error);
+        feedback.error('Erro ao carregar dados cadastrais para relatórios');
       }
     }
+
+    /**
+     * Alterna a visibilidade do seletor de turma
+     */
+    window.alternarFiltroTurma = function() {
+      const tipo = document.getElementById('tipoRelatorio').value;
+      const container = document.getElementById('filtroTurmaContainer');
+      
+      if (tipo === 'alunos-turma') {
+        container.style.display = 'flex';
+      } else {
+        container.style.display = 'none';
+      }
+    };
 
     /**
      * Gera relatório selecionado
@@ -147,19 +178,32 @@
         </div>
       `;
 
-      await carregarDados();
+      // Recarrega apenas os cadastros base (se necessário)
+      if (professores.length === 0) {
+        await carregarDados();
+      }
 
       switch(tipo) {
         case 'geral':
+          // Requisita todas as notas e alunos apenas para o relatório geral
+          [alunos, notas] = await Promise.all([api.get('/alunos/'), api.get('/notas/')]);
           container.innerHTML = gerarRelatorioGeral();
           break;
         case 'alunos-turma':
-          container.innerHTML = gerarRelatorioAlunosPorTurma();
+          const turmaId = document.getElementById('filtroTurma').value;
+          if (!turmaId) {
+            container.innerHTML = `<div class="alert alert-warning text-center">Selecione uma turma para gerar o relatório.</div>`;
+            return;
+          }
+          container.innerHTML = await gerarRelatorioAlunosPorTurma(turmaId);
           break;
         case 'notas-disciplina':
+          [alunos, notas] = await Promise.all([api.get('/alunos/'), api.get('/notas/')]);
           container.innerHTML = gerarRelatorioNotasPorDisciplina();
           break;
         case 'desempenho-alunos':
+           // Para desempenho, precisamos da lista de alunos (que já traz a média dinamicamente)
+          alunos = await api.get('/alunos/'); 
           container.innerHTML = gerarRelatorioDesempenhoAlunos();
           break;
         case 'professores-turmas':
@@ -172,6 +216,7 @@
      * Relatório: Estatísticas Gerais
      */
     function gerarRelatorioGeral() {
+      // Cálculo da Média Global no Frontend (aceitável para relatórios simples)
       const mediaGeral = notas.length > 0
         ? (notas.reduce((sum, n) => sum + parseFloat(n.valor), 0) / notas.length).toFixed(2)
         : '0.00';
@@ -237,62 +282,75 @@
     }
 
     /**
-     * Relatório: Alunos por Turma
+     * Relatório: Alunos por Turma (BUSCA OTIMIZADA VIA API)
+     * Requer o endpoint customizado: /turmas/{id}/alunos/
      */
-    function gerarRelatorioAlunosPorTurma() {
-      return `
-        <div class="card shadow-sm">
-          <div class="card-header bg-success text-white">
-            <h5 class="mb-0"><i class="bi bi-people"></i> Alunos por Turma</h5>
-          </div>
-          <div class="card-body">
-            ${turmas.map(turma => {
-              const alunosDaTurma = alunos.filter(a => a.turma === turma.id);
-              const professor = professores.find(p => p.turma_responsavel === turma.id);
-              
-              return `
-                <div class="mb-4">
-                  <h6 class="bg-light p-2 rounded">
-                    <i class="bi bi-collection"></i> ${turma.nome} - ${turma.ano}
-                    <span class="badge bg-primary float-end">${alunosDaTurma.length} alunos</span>
-                  </h6>
-                  ${professor ? `<p class="mb-2"><strong>Professor Responsável:</strong> ${professor.nome_completo}</p>` : ''}
-                  ${alunosDaTurma.length > 0 ? `
-                    <div class="table-responsive">
-                      <table class="table table-sm table-striped">
-                        <thead>
-                          <tr>
-                            <th>Nome</th>
-                            <th>CPF</th>
-                            <th>Status</th>
-                            <th>Média</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${alunosDaTurma.map(aluno => `
-                            <tr>
-                              <td>${aluno.nome_completo}</td>
-                              <td>${formatarCPF(aluno.cpf)}</td>
-                              <td><span class="badge bg-${aluno.status === 'Ativo' ? 'success' : 'secondary'}">${aluno.status}</span></td>
-                              <td><span class="badge bg-info">${aluno.media_geral}</span></td>
-                            </tr>
-                          `).join('')}
-                        </tbody>
-                      </table>
-                    </div>
-                  ` : '<p class="text-muted">Nenhum aluno matriculado</p>'}
+    async function gerarRelatorioAlunosPorTurma(turmaId) {
+        // Busca a turma e os alunos da turma via API customizada
+        const [turma, alunosDaTurma] = await Promise.all([
+            api.get(`/turmas/${turmaId}/`),
+            api.get(`/turmas/${turmaId}/alunos/`)
+        ]);
+
+        const professor = professores.find(p => p.turma_responsavel === turma.id);
+        
+        return `
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Alunos por Turma: ${turma.nome} - ${turma.ano}</h5>
                 </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      `;
+                <div class="card-body">
+                    <p class="mb-3"><strong>Professor Responsável:</strong> ${professor ? professor.nome_completo : '<em class="text-muted">Não definido</em>'}</p>
+                    
+                    ${alunosDaTurma.length > 0 ? `
+                      <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                          <thead>
+                            <tr>
+                              <th>Nome</th>
+                              <th>CPF</th>
+                              <th>Status</th>
+                              <th>Média Global</th>
+                              <th>Médias por Disciplina</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${alunosDaTurma.map(aluno => {
+                                // Assume que o aluno.media_geral existe via @property
+                                const mediaGeral = aluno.media_geral !== undefined ? aluno.media_geral.toFixed(2) : 'N/D';
+                                // Assume que medias_por_disciplina existe via SerializerMethodField
+                                const mediasDisciplinas = aluno.medias_por_disciplina 
+                                    ? aluno.medias_por_disciplina.map(m => 
+                                        `<span class="badge bg-secondary me-1">${m.disciplina}: ${m.media.toFixed(2)}</span>`
+                                      ).join('')
+                                    : 'Não calculada';
+
+                                return `
+                                  <tr>
+                                    <td>${aluno.nome_completo}</td>
+                                    <td>${formatarCPF(aluno.cpf)}</td>
+                                    <td><span class="badge bg-${aluno.status === 'Ativo' ? 'success' : 'secondary'}">${aluno.status}</span></td>
+                                    <td><span class="badge bg-info fs-6">${mediaGeral}</span></td>
+                                    <td>${mediasDisciplinas}</td>
+                                  </tr>
+                                `;
+                            }).join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                    ` : '<p class="text-muted">Nenhum aluno matriculado</p>'}
+                </div>
+            </div>
+        `;
     }
 
     /**
-     * Relatório: Notas por Disciplina
+     * Relatório: Notas por Disciplina (Mantém a lógica local)
      */
     function gerarRelatorioNotasPorDisciplina() {
+      // Requer que 'alunos' e 'notas' tenham sido carregados no gerarRelatorio()
+      if (alunos.length === 0 || notas.length === 0) return `<div class="alert alert-warning text-center">Nenhuma nota ou aluno para calcular.</div>`;
+      
       return `
         <div class="card shadow-sm">
           <div class="card-header bg-info text-white">
@@ -344,7 +402,7 @@
                       <div class="col-md-3">
                         <div class="card bg-danger text-white">
                           <div class="card-body text-center p-2">
-                            <small>Reprovados (&lt;5)</small>
+                            <small>Reprovados (<5)</small>
                             <h5 class="mb-0">${reprovados}</h5>
                           </div>
                         </div>
@@ -360,26 +418,26 @@
     }
 
     /**
-     * Relatório: Desempenho dos Alunos
+     * Relatório: Desempenho dos Alunos (AGORA CONFIA NO BACKEND PARA media_geral)
      */
     function gerarRelatorioDesempenhoAlunos() {
-      const alunosComNotas = alunos.map(aluno => {
-        const notasAluno = notas.filter(n => n.aluno === aluno.id);
-        const media = notasAluno.length > 0
-          ? (notasAluno.reduce((sum, n) => sum + parseFloat(n.valor), 0) / notasAluno.length).toFixed(2)
-          : '0.00';
-        
-        return {
-          ...aluno,
-          totalNotas: notasAluno.length,
-          mediaCalculada: parseFloat(media)
-        };
+      // Requer que 'alunos' tenha sido carregado no gerarRelatorio()
+      if (alunos.length === 0) return `<div class="alert alert-warning text-center">Nenhum aluno cadastrado.</div>`;
+
+      // Simplesmente usa a média vinda do Serializer (propriedade dinâmica)
+      const alunosComMedia = alunos.map(aluno => {
+          // Garante que a media_geral seja tratada como float para a ordenação
+          const media = parseFloat(aluno.media_geral) || 0.00;
+          return {
+              ...aluno,
+              mediaCalculada: media
+          };
       }).sort((a, b) => b.mediaCalculada - a.mediaCalculada);
 
       return `
         <div class="card shadow-sm">
           <div class="card-header bg-warning">
-            <h5 class="mb-0"><i class="bi bi-trophy"></i> Desempenho dos Alunos</h5>
+            <h5 class="mb-0"><i class="bi bi-trophy"></i> Desempenho dos Alunos (Global)</h5>
           </div>
           <div class="card-body">
             <div class="table-responsive">
@@ -389,13 +447,12 @@
                     <th>Posição</th>
                     <th>Nome</th>
                     <th>Turma</th>
-                    <th>Total Notas</th>
-                    <th>Média</th>
+                    <th>Média Global</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${alunosComNotas.map((aluno, index) => {
+                  ${alunosComMedia.map((aluno, index) => {
                     const turma = turmas.find(t => t.id === aluno.turma);
                     const statusNota = aluno.mediaCalculada >= 7 ? 'success' : 
                                       aluno.mediaCalculada >= 5 ? 'warning' : 'danger';
@@ -407,7 +464,6 @@
                         <td><strong>${medalha}</strong></td>
                         <td>${aluno.nome_completo}</td>
                         <td>${turma ? turma.nome : 'N/A'}</td>
-                        <td><span class="badge bg-secondary">${aluno.totalNotas}</span></td>
                         <td><span class="badge bg-${statusNota} fs-6">${aluno.mediaCalculada.toFixed(2)}</span></td>
                         <td><span class="badge bg-${aluno.status === 'Ativo' ? 'success' : 'secondary'}">${aluno.status}</span></td>
                       </tr>
@@ -425,6 +481,10 @@
      * Relatório: Professores e Turmas
      */
     function gerarRelatorioProfessoresTurmas() {
+      // Requer que 'alunos' seja carregado (fazendo a requisição aqui, se necessário)
+      // Como alunos foi carregado para 'geral' ou 'desempenho', usaremos a lista em cache.
+      const alunos_temp = alunos.length > 0 ? alunos : [];
+
       return `
         <div class="card shadow-sm">
           <div class="card-header bg-danger text-white">
@@ -446,7 +506,8 @@
                 <tbody>
                   ${professores.map(professor => {
                     const turma = turmas.find(t => t.id === professor.turma_responsavel);
-                    const alunosDaTurma = turma ? alunos.filter(a => a.turma === turma.id).length : 0;
+                    // Usa a lista de alunos (temp)
+                    const alunosDaTurma = turma ? alunos_temp.filter(a => a.turma === turma.id).length : 0;
 
                     return `
                       <tr>
@@ -471,6 +532,8 @@
      * Formatar CPF
      */
     function formatarCPF(cpf) {
+      if (!cpf) return 'N/A';
+      // Assume que o CPF é uma string de 11 dígitos
       return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     }
 
@@ -478,10 +541,11 @@
      * Formatar data
      */
     function formatarData(data) {
+      if (!data) return 'N/A';
       return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
     }
 
-    // Carregar dados iniciais
+    // Inicializar
     carregarDados();
   </script>
 </body>

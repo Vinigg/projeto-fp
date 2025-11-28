@@ -147,6 +147,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
+    // Confirmação de que o caminho é `./assets/js/api.js`
     import { api, feedback } from './assets/js/api.js';
 
     let alunos = [];
@@ -249,10 +250,13 @@
         if (alunosDaTurma.length > 0) {
           html += '<ul class="list-group">';
           alunosDaTurma.forEach(aluno => {
+            // Assume que aluno.media_geral existe via SerializerMethodField no Backend
+            const mediaGeral = aluno.media_geral ? aluno.media_geral.toFixed(2) : 'N/A';
+            
             html += `
               <li class="list-group-item d-flex justify-content-between align-items-center">
                 ${aluno.nome_completo}
-                <span class="badge bg-primary">${aluno.media_geral}</span>
+                <span class="badge bg-primary">Média: ${mediaGeral}</span>
               </li>
             `;
           });

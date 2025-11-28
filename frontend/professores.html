@@ -9,7 +9,6 @@
   <link href="assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="index.html">
@@ -60,14 +59,13 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
   <main class="container py-4">
     <div class="row mb-4">
       <div class="col">
         <h1 class="h3">
           <i class="bi bi-person-badge-fill"></i> Gerenciamento de Professores
         </h1>
-        <p class="text-muted">Cadastro e gestão de professores</p>
+        <p class="text-muted">Cadastro e gestão de professores e suas disciplinas</p>
       </div>
       <div class="col-auto">
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalProfessor" onclick="limparFormulario()">
@@ -76,7 +74,6 @@
       </div>
     </div>
 
-    <!-- Tabela de Professores -->
     <div class="card shadow-sm">
       <div class="card-body">
         <div class="table-responsive">
@@ -87,7 +84,7 @@
                 <th>Nome Completo</th>
                 <th>CPF</th>
                 <th>Especialização</th>
-                <th>Turma Responsável</th>
+                <th>Disciplinas</th>
                 <th>Data Contratação</th>
                 <th>Status</th>
                 <th class="text-center">Ações</th>
@@ -108,7 +105,6 @@
     </div>
   </main>
 
-  <!-- Modal Professor -->
   <div class="modal fade" id="modalProfessor" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <form class="modal-content" id="formProfessor">
@@ -146,11 +142,10 @@
             </div>
 
             <div class="col-md-6">
-              <label for="professorTurmaResponsavel" class="form-label">Turma Responsável</label>
-              <select class="form-select" id="professorTurmaResponsavel">
-                <option value="">Nenhuma</option>
-              </select>
-              <small class="form-text text-muted">Opcional - Turma pela qual é responsável</small>
+              <label for="professorDisciplinas" class="form-label">Disciplinas Lecionadas</label>
+              <select class="form-select" id="professorDisciplinas" multiple size="4">
+                </select>
+              <small class="form-text text-muted">Segure <strong>Ctrl</strong> (ou Cmd) para selecionar várias.</small>
             </div>
 
             <div class="col-md-6">
@@ -178,7 +173,7 @@
   <script type="module">
     import { api, feedback } from './assets/js/api.js';
 
-    let turmas = [];
+    let disciplinas = []; // Armazena a lista de disciplinas para lookup
     let modalInstance = null;
 
     /**
@@ -201,16 +196,24 @@
         }
 
         tbody.innerHTML = professores.map(professor => {
-          const turma = turmas.find(t => t.id === professor.turma_responsavel);
-          const turmaNome = turma ? `${turma.nome} - ${turma.ano}` : 'Nenhuma';
+          // Lógica para mostrar os nomes das disciplinas
+          // O backend envia IDs (ex: [1, 2]), então buscamos os nomes na lista 'disciplinas'
+          let nomesDisciplinas = 'Nenhuma';
           
+          if (professor.disciplinas && professor.disciplinas.length > 0) {
+            nomesDisciplinas = professor.disciplinas.map(id => {
+              const d = disciplinas.find(disc => disc.id === id);
+              return d ? `<span class="badge bg-info me-1">${d.nome}</span>` : '';
+            }).join('');
+          }
+
           return `
             <tr>
               <td>${professor.id}</td>
               <td><strong>${professor.nome_completo}</strong></td>
               <td>${formatarCPF(professor.cpf)}</td>
-              <td><span class="badge bg-info">${professor.area_especializacao}</span></td>
-              <td>${turmaNome}</td>
+              <td><span class="badge bg-secondary">${professor.area_especializacao}</span></td>
+              <td>${nomesDisciplinas}</td>
               <td>${formatarData(professor.data_contratacao)}</td>
               <td>
                 <span class="badge bg-${professor.ativo ? 'success' : 'secondary'}">
@@ -235,17 +238,19 @@
     }
 
     /**
-     * Carrega turmas para o select
+     * Carrega disciplinas para o select múltiplo
      */
-    async function carregarTurmas() {
+    async function carregarDisciplinas() {
       try {
-        turmas = await api.get('/turmas/');
-        const select = document.getElementById('professorTurmaResponsavel');
+        disciplinas = await api.get('/disciplinas/');
+        const select = document.getElementById('professorDisciplinas');
         
-        select.innerHTML = '<option value="">Nenhuma</option>' +
-          turmas.map(t => `<option value="${t.id}">${t.nome} - ${t.ano}</option>`).join('');
+        select.innerHTML = disciplinas.map(d => 
+          `<option value="${d.id}">${d.nome}</option>`
+        ).join('');
       } catch (error) {
-        console.error('Erro ao carregar turmas:', error);
+        console.error('Erro ao carregar disciplinas:', error);
+        feedback.error('Erro ao carregar lista de disciplinas para seleção');
       }
     }
 
@@ -257,6 +262,10 @@
       document.getElementById('professorId').value = '';
       document.getElementById('tituloModal').textContent = 'Cadastrar Professor';
       document.getElementById('professorAtivo').value = 'true';
+      
+      // Limpar seleção múltipla
+      const select = document.getElementById('professorDisciplinas');
+      Array.from(select.options).forEach(opt => opt.selected = false);
     };
 
     /**
@@ -271,8 +280,16 @@
         document.getElementById('professorCpf').value = professor.cpf;
         document.getElementById('professorEspecializacao').value = professor.area_especializacao;
         document.getElementById('professorDataContratacao').value = professor.data_contratacao;
-        document.getElementById('professorTurmaResponsavel').value = professor.turma_responsavel || '';
         document.getElementById('professorAtivo').value = professor.ativo.toString();
+        
+        // Selecionar as disciplinas no select múltiplo
+        const select = document.getElementById('professorDisciplinas');
+        const idsDisciplinas = professor.disciplinas || []; // Array de IDs
+        
+        Array.from(select.options).forEach(option => {
+          option.selected = idsDisciplinas.includes(parseInt(option.value));
+        });
+
         document.getElementById('tituloModal').textContent = 'Editar Professor';
 
         modalInstance = new bootstrap.Modal(document.getElementById('modalProfessor'));
@@ -308,14 +325,17 @@
       e.preventDefault();
 
       const id = document.getElementById('professorId').value;
-      const turmaResponsavel = document.getElementById('professorTurmaResponsavel').value;
       
+      // Capturar as disciplinas selecionadas (Select Multiple)
+      const selectDisciplinas = document.getElementById('professorDisciplinas');
+      const disciplinasSelecionadas = Array.from(selectDisciplinas.selectedOptions).map(opt => parseInt(opt.value));
+
       const dados = {
         nome_completo: document.getElementById('professorNome').value,
         cpf: document.getElementById('professorCpf').value,
         area_especializacao: document.getElementById('professorEspecializacao').value,
         data_contratacao: document.getElementById('professorDataContratacao').value,
-        turma_responsavel: turmaResponsavel ? parseInt(turmaResponsavel) : null,
+        disciplinas: disciplinasSelecionadas, // Envia Array de IDs
         ativo: document.getElementById('professorAtivo').value === 'true'
       };
 
@@ -341,6 +361,7 @@
      * Formatar CPF
      */
     function formatarCPF(cpf) {
+      if (!cpf) return 'N/A';
       return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     }
 
@@ -348,11 +369,12 @@
      * Formatar data
      */
     function formatarData(data) {
+      if (!data) return 'N/A';
       return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
     }
 
-    // Inicializar
-    carregarTurmas().then(listarProfessores);
+    // Inicializar: Carrega disciplinas primeiro, depois lista professores
+    carregarDisciplinas().then(listarProfessores);
   </script>
 </body>
 </html>

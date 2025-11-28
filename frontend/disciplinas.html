@@ -120,6 +120,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
+    // Confirmação de que o caminho é `./assets/js/api.js`
     import { api, feedback } from './assets/js/api.js';
 
     let notas = [];
@@ -190,7 +191,8 @@
         listarDisciplinas();
       } catch (error) {
         console.error('Erro ao carregar notas:', error);
-        listarDisciplinas();
+        // Garante que a lista de disciplinas carregue mesmo sem notas
+        listarDisciplinas(); 
       }
     }
 

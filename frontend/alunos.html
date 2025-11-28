@@ -154,12 +154,15 @@
                 <option value="Transferido">Transferido</option>
               </select>
             </div>
-
+            
+            <!-- REMOVIDO: O campo media_geral foi removido pois é calculado no Backend -->
+            <!--
             <div class="col-md-6">
               <label for="alunoMediaGeral" class="form-label">Média Geral</label>
               <input type="number" class="form-control" id="alunoMediaGeral" 
                      step="0.01" min="0" max="10" value="0.00">
             </div>
+            -->
           </div>
         </div>
         <div class="modal-footer">
@@ -176,6 +179,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
+    // Confirmação de que o caminho é `./assets/js/api.js`
     import { api, feedback } from './assets/js/api.js';
 
     let turmas = [];
@@ -211,7 +215,7 @@
               <td>${formatarCPF(aluno.cpf)}</td>
               <td>${formatarData(aluno.data_nascimento)}</td>
               <td><span class="badge bg-info">${turmaNome}</span></td>
-              <td><span class="badge bg-success">${aluno.media_geral}</span></td>
+              <td><span class="badge bg-success">${aluno.media_geral ? aluno.media_geral.toFixed(2) : 'N/A'}</span></td>
               <td>
                 <span class="badge bg-${aluno.status === 'Ativo' ? 'success' : 'secondary'}">
                   ${aluno.status}
@@ -257,7 +261,7 @@
       document.getElementById('alunoId').value = '';
       document.getElementById('tituloModal').textContent = 'Cadastrar Aluno';
       document.getElementById('alunoStatus').value = 'Ativo';
-      document.getElementById('alunoMediaGeral').value = '0.00';
+      // Removido: document.getElementById('alunoMediaGeral').value = '0.00';
     };
 
     /**
@@ -273,7 +277,7 @@
         document.getElementById('alunoDataNascimento').value = aluno.data_nascimento;
         document.getElementById('alunoTurma').value = aluno.turma;
         document.getElementById('alunoStatus').value = aluno.status;
-        document.getElementById('alunoMediaGeral').value = aluno.media_geral;
+        // Removido: document.getElementById('alunoMediaGeral').value = aluno.media_geral;
         document.getElementById('tituloModal').textContent = 'Editar Aluno';
 
         modalInstance = new bootstrap.Modal(document.getElementById('modalAluno'));
@@ -315,7 +319,8 @@
         data_nascimento: document.getElementById('alunoDataNascimento').value,
         turma: parseInt(document.getElementById('alunoTurma').value),
         status: document.getElementById('alunoStatus').value,
-        media_geral: parseFloat(document.getElementById('alunoMediaGeral').value)
+        // Removido o envio de media_geral, pois agora é um campo calculado no Backend
+        // media_geral: parseFloat(document.getElementById('alunoMediaGeral').value) 
       };
 
       try {
@@ -340,6 +345,7 @@
      * Formatar CPF
      */
     function formatarCPF(cpf) {
+      if (!cpf) return 'N/A';
       return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     }
 
@@ -347,6 +353,7 @@
      * Formatar data
      */
     function formatarData(data) {
+      if (!data) return 'N/A';
       return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
     }
 
