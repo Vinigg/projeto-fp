@@ -36,5 +36,4 @@ Banco de Dados: PostgreSQL
 - Cecilia Victoria Lopes dos Santos
 - Vitoria Gabrielly Gomes da Silva
 - Pedro Augusto Carvalho Araujo
-- Abednego Correia da Silva
 - Matheus do Nascimento Gomes Vaz
