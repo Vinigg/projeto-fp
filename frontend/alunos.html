@@ -154,12 +154,6 @@
                 <option value="Transferido">Transferido</option>
               </select>
             </div>
-
-            <div class="col-md-6">
-              <label for="alunoMediaGeral" class="form-label">Média Geral</label>
-              <input type="number" class="form-control" id="alunoMediaGeral" 
-                     step="0.01" min="0" max="10" value="0.00">
-            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -257,7 +251,6 @@
       document.getElementById('alunoId').value = '';
       document.getElementById('tituloModal').textContent = 'Cadastrar Aluno';
       document.getElementById('alunoStatus').value = 'Ativo';
-      document.getElementById('alunoMediaGeral').value = '0.00';
     };
 
     /**
@@ -273,7 +266,6 @@
         document.getElementById('alunoDataNascimento').value = aluno.data_nascimento;
         document.getElementById('alunoTurma').value = aluno.turma;
         document.getElementById('alunoStatus').value = aluno.status;
-        document.getElementById('alunoMediaGeral').value = aluno.media_geral;
         document.getElementById('tituloModal').textContent = 'Editar Aluno';
 
         modalInstance = new bootstrap.Modal(document.getElementById('modalAluno'));
@@ -314,8 +306,7 @@
         cpf: document.getElementById('alunoCpf').value,
         data_nascimento: document.getElementById('alunoDataNascimento').value,
         turma: parseInt(document.getElementById('alunoTurma').value),
-        status: document.getElementById('alunoStatus').value,
-        media_geral: parseFloat(document.getElementById('alunoMediaGeral').value)
+        status: document.getElementById('alunoStatus').value
       };
 
       try {

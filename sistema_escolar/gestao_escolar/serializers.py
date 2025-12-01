@@ -23,6 +23,12 @@ class AlunosSerializer(serializers.ModelSerializer):
 
 class NotaSerializer(serializers.ModelSerializer):
     class Meta:
-        moedl = Nota
+        model = Nota
         fields = '__all__'
+    
+    def validate_valor(self, value):
+        """Valida se a nota está entre 0 e 10"""
+        if value < 0 or value > 10:
+            raise serializers.ValidationError("A nota deve estar entre 0 e 10")
+        return value
 

@@ -111,6 +111,14 @@
               <input type="number" class="form-control" id="turmaAno" required 
                      placeholder="Ex: 2025" min="2000" max="2100">
             </div>
+
+            <div class="col-12">
+              <label class="form-label">Professores da Turma *</label>
+              <div id="turmaProfessores" class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                <p class="text-muted">Carregando professores...</p>
+              </div>
+              <small class="form-text text-muted">Selecione pelo menos um professor</small>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -173,7 +181,8 @@
 
         container.innerHTML = turmas.map(turma => {
           const alunosDaTurma = alunos.filter(a => a.turma === turma.id);
-          const professorResponsavel = professores.find(p => p.turma_responsavel === turma.id);
+          const professoresTurma = turma.professores || [];
+          const qtdProfessores = professoresTurma.length;
           
           return `
             <div class="col-md-6 col-lg-4">
@@ -187,8 +196,7 @@
                   <p class="card-text">
                     <strong>Ano Letivo:</strong> ${turma.ano}<br>
                     <strong>Total de Alunos:</strong> <span class="badge bg-primary">${alunosDaTurma.length}</span><br>
-                    <strong>Professor Responsável:</strong> 
-                    ${professorResponsavel ? professorResponsavel.nome_completo : '<em class="text-muted">Não definido</em>'}
+                    <strong>Professores:</strong> <span class="badge bg-success">${qtdProfessores}</span>
                   </p>
                 </div>
                 <div class="card-footer bg-transparent">
@@ -228,23 +236,73 @@
     }
 
     /**
+     * Renderiza checkboxes de professores
+     */
+    function renderizarProfessores(selecionados = []) {
+      const container = document.getElementById('turmaProfessores');
+      
+      if (professores.length === 0) {
+        container.innerHTML = '<p class="text-danger">Nenhum professor cadastrado. Cadastre professores primeiro.</p>';
+        return;
+      }
+
+      const professoresAtivos = professores.filter(p => p.ativo);
+      if (professoresAtivos.length === 0) {
+        container.innerHTML = '<p class="text-warning">Nenhum professor ativo disponível.</p>';
+        return;
+      }
+
+      container.innerHTML = professoresAtivos.map(prof => {
+        const disciplinasNomes = (prof.disciplinas || []).map(discId => {
+          // Simplificado - em produção, carregar disciplinas para mostrar nomes
+          return discId;
+        }).join(', ');
+        
+        return `
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="${prof.id}" 
+                   id="prof${prof.id}" ${selecionados.includes(prof.id) ? 'checked' : ''}>
+            <label class="form-check-label" for="prof${prof.id}">
+              ${prof.nome_completo} <small class="text-muted">(${prof.area_especializacao})</small>
+            </label>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
      * Ver detalhes da turma
      */
     window.verDetalhes = async function(id) {
       try {
         const turma = await api.get(`/turmas/${id}/`);
         const alunosDaTurma = alunos.filter(a => a.turma === turma.id);
-        const professorResponsavel = professores.find(p => p.turma_responsavel === turma.id);
+        const professoresTurma = (turma.professores || []).map(profId => {
+          return professores.find(p => p.id === profId);
+        }).filter(p => p);
 
         let html = `
           <h6><strong>Nome:</strong> ${turma.nome}</h6>
           <h6><strong>Ano Letivo:</strong> ${turma.ano}</h6>
           <hr>
-          <h6><strong>Professor Responsável:</strong></h6>
-          <p>${professorResponsavel ? professorResponsavel.nome_completo : '<em>Não definido</em>'}</p>
-          <hr>
-          <h6><strong>Alunos (${alunosDaTurma.length}):</strong></h6>
+          <h6><strong>Professores (${professoresTurma.length}):</strong></h6>
         `;
+
+        if (professoresTurma.length > 0) {
+          html += '<ul class="list-group mb-3">';
+          professoresTurma.forEach(prof => {
+            html += `
+              <li class="list-group-item">
+                ${prof.nome_completo} <small class="text-muted">(${prof.area_especializacao})</small>
+              </li>
+            `;
+          });
+          html += '</ul>';
+        } else {
+          html += '<p class="text-muted">Nenhum professor atribuído.</p>';
+        }
+
+        html += '<hr><h6><strong>Alunos (${alunosDaTurma.length}):</strong></h6>';
 
         if (alunosDaTurma.length > 0) {
           html += '<ul class="list-group">';
@@ -277,6 +335,7 @@
       document.getElementById('turmaId').value = '';
       document.getElementById('tituloModal').textContent = 'Cadastrar Turma';
       document.getElementById('turmaAno').value = new Date().getFullYear();
+      renderizarProfessores([]);
     };
 
     /**
@@ -290,6 +349,8 @@
         document.getElementById('turmaNome').value = turma.nome;
         document.getElementById('turmaAno').value = turma.ano;
         document.getElementById('tituloModal').textContent = 'Editar Turma';
+        
+        renderizarProfessores(turma.professores || []);
 
         new bootstrap.Modal(document.getElementById('modalTurma')).show();
       } catch (error) {
@@ -330,9 +391,23 @@
       e.preventDefault();
 
       const id = document.getElementById('turmaId').value;
+      
+      // Coletar professores selecionados
+      const professoresSelecionados = [];
+      document.querySelectorAll('#turmaProfessores input[type="checkbox"]:checked').forEach(cb => {
+        professoresSelecionados.push(parseInt(cb.value));
+      });
+
+      // Validar que tem pelo menos um professor
+      if (professoresSelecionados.length === 0) {
+        feedback.error('Selecione pelo menos um professor!');
+        return;
+      }
+      
       const dados = {
         nome: document.getElementById('turmaNome').value,
-        ano: parseInt(document.getElementById('turmaAno').value)
+        ano: parseInt(document.getElementById('turmaAno').value),
+        professores: professoresSelecionados
       };
 
       try {

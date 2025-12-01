@@ -146,19 +146,19 @@
             </div>
 
             <div class="col-md-6">
-              <label for="professorTurmaResponsavel" class="form-label">Turma Responsável</label>
-              <select class="form-select" id="professorTurmaResponsavel">
-                <option value="">Nenhuma</option>
-              </select>
-              <small class="form-text text-muted">Opcional - Turma pela qual é responsável</small>
-            </div>
-
-            <div class="col-md-6">
               <label for="professorAtivo" class="form-label">Status</label>
               <select class="form-select" id="professorAtivo" required>
                 <option value="true">Ativo</option>
                 <option value="false">Inativo</option>
               </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Disciplinas que Leciona *</label>
+              <div id="professorDisciplinas" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                <p class="text-muted">Carregando disciplinas...</p>
+              </div>
+              <small class="form-text text-muted">Selecione pelo menos uma disciplina</small>
             </div>
           </div>
         </div>
@@ -178,7 +178,7 @@
   <script type="module">
     import { api, feedback } from './assets/js/api.js';
 
-    let turmas = [];
+    let disciplinas = [];
     let modalInstance = null;
 
     /**
@@ -201,8 +201,11 @@
         }
 
         tbody.innerHTML = professores.map(professor => {
-          const turma = turmas.find(t => t.id === professor.turma_responsavel);
-          const turmaNome = turma ? `${turma.nome} - ${turma.ano}` : 'Nenhuma';
+          const disciplinasProfessor = professor.disciplinas || [];
+          const disciplinasNomes = disciplinasProfessor.map(discId => {
+            const disc = disciplinas.find(d => d.id === discId);
+            return disc ? disc.nome : '';
+          }).filter(n => n).join(', ') || 'Nenhuma';
           
           return `
             <tr>
@@ -210,7 +213,7 @@
               <td><strong>${professor.nome_completo}</strong></td>
               <td>${formatarCPF(professor.cpf)}</td>
               <td><span class="badge bg-info">${professor.area_especializacao}</span></td>
-              <td>${turmaNome}</td>
+              <td><small>${disciplinasNomes}</small></td>
               <td>${formatarData(professor.data_contratacao)}</td>
               <td>
                 <span class="badge bg-${professor.ativo ? 'success' : 'secondary'}">
@@ -235,18 +238,38 @@
     }
 
     /**
-     * Carrega turmas para o select
+     * Carrega disciplinas para os checkboxes
      */
-    async function carregarTurmas() {
+    async function carregarDisciplinas() {
       try {
-        turmas = await api.get('/turmas/');
-        const select = document.getElementById('professorTurmaResponsavel');
-        
-        select.innerHTML = '<option value="">Nenhuma</option>' +
-          turmas.map(t => `<option value="${t.id}">${t.nome} - ${t.ano}</option>`).join('');
+        disciplinas = await api.get('/disciplinas/');
+        renderizarDisciplinas();
       } catch (error) {
-        console.error('Erro ao carregar turmas:', error);
+        console.error('Erro ao carregar disciplinas:', error);
+        feedback.error('Erro ao carregar disciplinas');
       }
+    }
+
+    /**
+     * Renderiza checkboxes de disciplinas
+     */
+    function renderizarDisciplinas(selecionadas = []) {
+      const container = document.getElementById('professorDisciplinas');
+      
+      if (disciplinas.length === 0) {
+        container.innerHTML = '<p class="text-danger">Nenhuma disciplina cadastrada. Cadastre disciplinas primeiro.</p>';
+        return;
+      }
+
+      container.innerHTML = disciplinas.map(disc => `
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="${disc.id}" 
+                 id="disc${disc.id}" ${selecionadas.includes(disc.id) ? 'checked' : ''}>
+          <label class="form-check-label" for="disc${disc.id}">
+            ${disc.nome}
+          </label>
+        </div>
+      `).join('');
     }
 
     /**
@@ -257,6 +280,7 @@
       document.getElementById('professorId').value = '';
       document.getElementById('tituloModal').textContent = 'Cadastrar Professor';
       document.getElementById('professorAtivo').value = 'true';
+      renderizarDisciplinas([]);
     };
 
     /**
@@ -271,9 +295,10 @@
         document.getElementById('professorCpf').value = professor.cpf;
         document.getElementById('professorEspecializacao').value = professor.area_especializacao;
         document.getElementById('professorDataContratacao').value = professor.data_contratacao;
-        document.getElementById('professorTurmaResponsavel').value = professor.turma_responsavel || '';
         document.getElementById('professorAtivo').value = professor.ativo.toString();
         document.getElementById('tituloModal').textContent = 'Editar Professor';
+        
+        renderizarDisciplinas(professor.disciplinas || []);
 
         modalInstance = new bootstrap.Modal(document.getElementById('modalProfessor'));
         modalInstance.show();
@@ -308,14 +333,25 @@
       e.preventDefault();
 
       const id = document.getElementById('professorId').value;
-      const turmaResponsavel = document.getElementById('professorTurmaResponsavel').value;
+      
+      // Coletar disciplinas selecionadas
+      const disciplinasSelecionadas = [];
+      document.querySelectorAll('#professorDisciplinas input[type="checkbox"]:checked').forEach(cb => {
+        disciplinasSelecionadas.push(parseInt(cb.value));
+      });
+
+      // Validar que tem pelo menos uma disciplina
+      if (disciplinasSelecionadas.length === 0) {
+        feedback.error('Selecione pelo menos uma disciplina!');
+        return;
+      }
       
       const dados = {
         nome_completo: document.getElementById('professorNome').value,
         cpf: document.getElementById('professorCpf').value,
         area_especializacao: document.getElementById('professorEspecializacao').value,
         data_contratacao: document.getElementById('professorDataContratacao').value,
-        turma_responsavel: turmaResponsavel ? parseInt(turmaResponsavel) : null,
+        disciplinas: disciplinasSelecionadas,
         ativo: document.getElementById('professorAtivo').value === 'true'
       };
 
@@ -352,7 +388,7 @@
     }
 
     // Inicializar
-    carregarTurmas().then(listarProfessores);
+    carregarDisciplinas().then(listarProfessores);
   </script>
 </body>
 </html>
