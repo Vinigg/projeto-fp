@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
-from datetime import date  # <--- ESTA LINHA ESTAVA FALTANDO
+from datetime import date 
 from .models import Turma, Disciplina, Professor, Aluno, Nota, TurmaDisciplina
 
 class TurmaDisciplinaSerializer(serializers.ModelSerializer):
@@ -72,18 +72,17 @@ class ProfessorSerializer(serializers.ModelSerializer):
     def validate(self, data):
         dt_nasc = data.get('data_nascimento')
         dt_contr = data.get('data_contratacao')
-        hoje = date.today() # Agora vai funcionar pois importamos 'date' lá em cima
+        hoje = date.today() 
 
-        # 1. Validação de Datas Futuras
         if dt_nasc and dt_nasc > hoje:
             raise serializers.ValidationError({"data_nascimento": "A data de nascimento não pode estar no futuro."})
         
         if dt_contr and dt_contr > hoje:
             raise serializers.ValidationError({"data_contratacao": "A data de contratação não pode estar no futuro."})
 
-        # 2. Validação de Idade Mínima (18 anos na data da contratação)
+        
         if dt_nasc and dt_contr:
-            # Lógica precisa para cálculo de idade
+            
             idade_na_contratacao = dt_contr.year - dt_nasc.year - ((dt_contr.month, dt_contr.day) < (dt_nasc.month, dt_nasc.day))
             
             if idade_na_contratacao < 18:
@@ -124,7 +123,7 @@ class NotaSerializer(serializers.ModelSerializer):
             disciplina = data.get('disciplina')
 
         if aluno and disciplina:
-            # Verifica na tabela Grade Curricular se existe o vínculo
+            
             existe_na_grade = TurmaDisciplina.objects.filter(
                 turma=aluno.turma,
                 disciplina=disciplina
