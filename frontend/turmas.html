@@ -9,7 +9,6 @@
   <link href="assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="index.html">
@@ -60,14 +59,13 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
   <main class="container py-4">
     <div class="row mb-4">
       <div class="col">
         <h1 class="h3">
           <i class="bi bi-collection-fill"></i> Gerenciamento de Turmas
         </h1>
-        <p class="text-muted">Cadastro e gestão de turmas</p>
+        <p class="text-muted">Cadastro e gestão de turmas e grades curriculares</p>
       </div>
       <div class="col-auto">
         <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalTurma" onclick="limparFormulario()">
@@ -76,7 +74,6 @@
       </div>
     </div>
 
-    <!-- Cards de Turmas -->
     <div class="row g-3" id="turmasContainer">
       <div class="col-12 text-center">
         <div class="spinner-border text-warning" role="status">
@@ -86,9 +83,8 @@
     </div>
   </main>
 
-  <!-- Modal Turma -->
   <div class="modal fade" id="modalTurma" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
       <form class="modal-content" id="formTurma">
         <div class="modal-header bg-warning">
           <h5 class="modal-title">
@@ -100,24 +96,26 @@
           <input type="hidden" id="turmaId">
           
           <div class="row g-3">
-            <div class="col-12">
+            <div class="col-md-8">
               <label for="turmaNome" class="form-label">Nome da Turma *</label>
               <input type="text" class="form-control" id="turmaNome" required 
                      placeholder="Ex: 3º Ano A">
             </div>
 
-            <div class="col-12">
+            <div class="col-md-4">
               <label for="turmaAno" class="form-label">Ano Letivo *</label>
               <input type="number" class="form-control" id="turmaAno" required 
                      placeholder="Ex: 2025" min="2000" max="2100">
             </div>
 
             <div class="col-12">
-              <label class="form-label">Professores da Turma *</label>
-              <div id="turmaProfessores" class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
-                <p class="text-muted">Carregando professores...</p>
+              <label class="form-label">Grade Curricular (Disciplinas e Professores) *</label>
+              <div class="alert alert-light border small text-muted mb-2">
+                <i class="bi bi-info-circle"></i> Selecione quais disciplinas serão ofertadas nesta turma e qual professor ministrará cada uma.
               </div>
-              <small class="form-text text-muted">Selecione pelo menos um professor</small>
+              <div id="gradeOpcoes" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                <p class="text-muted">Carregando opções...</p>
+              </div>
             </div>
           </div>
         </div>
@@ -133,7 +131,6 @@
     </div>
   </div>
 
-  <!-- Modal Detalhes da Turma -->
   <div class="modal fade" id="modalDetalhesTurma" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -144,8 +141,7 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body" id="detalhesTurmaBody">
-          <!-- Conteúdo será inserido via JavaScript -->
-        </div>
+          </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
         </div>
@@ -155,14 +151,26 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
-    import { api, feedback } from './assets/js/api.js';
+import { api, feedback } from './assets/js/api.js';
 
     let alunos = [];
     let professores = [];
+    let disciplinas = [];
 
-    /**
-     * Carrega lista de turmas
-     */
+    async function carregarDados() {
+      try {
+        [alunos, professores, disciplinas] = await Promise.all([
+          api.get('/alunos/'),
+          api.get('/professores/'),
+          api.get('/disciplinas/')
+        ]);
+        listarTurmas();
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        feedback.error('Erro ao carregar dados do sistema');
+      }
+    }
+
     async function listarTurmas() {
       try {
         const turmas = await api.get('/turmas/');
@@ -170,45 +178,32 @@
 
         if (turmas.length === 0) {
           container.innerHTML = `
-            <div class="col-12">
-              <div class="alert alert-info text-center">
-                <i class="bi bi-inbox"></i> Nenhuma turma cadastrada
-              </div>
-            </div>
+            <div class="col-12"><div class="alert alert-info text-center">Nenhuma turma cadastrada</div></div>
           `;
           return;
         }
 
         container.innerHTML = turmas.map(turma => {
           const alunosDaTurma = alunos.filter(a => a.turma === turma.id);
-          const professoresTurma = turma.professores || [];
-          const qtdProfessores = professoresTurma.length;
+          const grade = turma.grade || [];
           
           return `
             <div class="col-md-6 col-lg-4">
               <div class="card shadow-sm h-100">
                 <div class="card-header bg-warning">
-                  <h5 class="card-title mb-0">
-                    <i class="bi bi-collection"></i> ${turma.nome}
-                  </h5>
+                  <h5 class="card-title mb-0"><i class="bi bi-collection"></i> ${turma.nome}</h5>
                 </div>
                 <div class="card-body">
                   <p class="card-text">
                     <strong>Ano Letivo:</strong> ${turma.ano}<br>
                     <strong>Total de Alunos:</strong> <span class="badge bg-primary">${alunosDaTurma.length}</span><br>
-                    <strong>Professores:</strong> <span class="badge bg-success">${qtdProfessores}</span>
+                    <strong>Disciplinas na Grade:</strong> <span class="badge bg-${grade.length > 0 ? 'success' : 'secondary'}">${grade.length}</span>
                   </p>
                 </div>
                 <div class="card-footer bg-transparent">
-                  <button class="btn btn-sm btn-outline-info" onclick="verDetalhes(${turma.id})" title="Ver Detalhes">
-                    <i class="bi bi-eye"></i> Detalhes
-                  </button>
-                  <button class="btn btn-sm btn-outline-primary" onclick="editarTurma(${turma.id})" title="Editar">
-                    <i class="bi bi-pencil"></i> Editar
-                  </button>
-                  <button class="btn btn-sm btn-outline-danger" onclick="excluirTurma(${turma.id})" title="Excluir">
-                    <i class="bi bi-trash"></i> Excluir
-                  </button>
+                  <button class="btn btn-sm btn-outline-info" onclick="verDetalhes(${turma.id})"><i class="bi bi-eye"></i> Detalhes</button>
+                  <button class="btn btn-sm btn-outline-primary" onclick="editarTurma(${turma.id})"><i class="bi bi-pencil"></i> Editar</button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="excluirTurma(${turma.id})"><i class="bi bi-trash"></i> Excluir</button>
                 </div>
               </div>
             </div>
@@ -216,131 +211,54 @@
         }).join('');
       } catch (error) {
         console.error('Erro ao listar turmas:', error);
-        feedback.error('Erro ao carregar lista de turmas');
       }
     }
 
-    /**
-     * Carrega alunos e professores
-     */
-    async function carregarDados() {
-      try {
-        [alunos, professores] = await Promise.all([
-          api.get('/alunos/'),
-          api.get('/professores/')
-        ]);
-        listarTurmas();
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-      }
-    }
-
-    /**
-     * Renderiza checkboxes de professores
-     */
-    function renderizarProfessores(selecionados = []) {
-      const container = document.getElementById('turmaProfessores');
+    function renderizarOpcoesGrade(gradeExistente = []) {
+      const container = document.getElementById('gradeOpcoes');
       
-      if (professores.length === 0) {
-        container.innerHTML = '<p class="text-danger">Nenhum professor cadastrado. Cadastre professores primeiro.</p>';
+      if (professores.length === 0 || disciplinas.length === 0) {
+        container.innerHTML = '<p class="text-danger">Cadastre professores e disciplinas primeiro.</p>';
         return;
       }
 
       const professoresAtivos = professores.filter(p => p.ativo);
-      if (professoresAtivos.length === 0) {
-        container.innerHTML = '<p class="text-warning">Nenhum professor ativo disponível.</p>';
-        return;
-      }
+      let html = '';
 
-      container.innerHTML = professoresAtivos.map(prof => {
-        const disciplinasNomes = (prof.disciplinas || []).map(discId => {
-          // Simplificado - em produção, carregar disciplinas para mostrar nomes
-          return discId;
-        }).join(', ');
-        
-        return `
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="${prof.id}" 
-                   id="prof${prof.id}" ${selecionados.includes(prof.id) ? 'checked' : ''}>
-            <label class="form-check-label" for="prof${prof.id}">
-              ${prof.nome_completo} <small class="text-muted">(${prof.area_especializacao})</small>
-            </label>
-          </div>
-        `;
-      }).join('');
+      professoresAtivos.forEach(prof => {
+        if (prof.disciplinas && prof.disciplinas.length > 0) {
+          html += `<div class="mb-2 p-2 bg-light rounded border-start border-4 border-primary">
+                    <strong class="text-primary">${prof.nome_completo}</strong>
+                   </div>`;
+          
+          prof.disciplinas.forEach(discId => {
+            const disciplina = disciplinas.find(d => d.id === discId);
+            if (disciplina) {
+              const estaSelecionado = gradeExistente.some(item => 
+                item.disciplina == discId && item.professor == prof.id
+              );
+
+              html += `
+                <div class="form-check ms-3 mb-2">
+                  <input class="form-check-input grade-checkbox" type="checkbox" 
+                         value="${discId}-${prof.id}" 
+                         id="grade-${discId}-${prof.id}"
+                         ${estaSelecionado ? 'checked' : ''}>
+                  <label class="form-check-label" for="grade-${discId}-${prof.id}">
+                    ${disciplina.nome}
+                  </label>
+                </div>
+              `;
+            }
+          });
+          html += '<hr class="my-2 text-muted">';
+        }
+      });
+
+      if (html === '') container.innerHTML = '<div class="alert alert-warning">Professores sem disciplinas.</div>';
+      container.innerHTML = html;
     }
 
-    /**
-     * Ver detalhes da turma
-     */
-    window.verDetalhes = async function(id) {
-      try {
-        const turma = await api.get(`/turmas/${id}/`);
-        const alunosDaTurma = alunos.filter(a => a.turma === turma.id);
-        const professoresTurma = (turma.professores || []).map(profId => {
-          return professores.find(p => p.id === profId);
-        }).filter(p => p);
-
-        let html = `
-          <h6><strong>Nome:</strong> ${turma.nome}</h6>
-          <h6><strong>Ano Letivo:</strong> ${turma.ano}</h6>
-          <hr>
-          <h6><strong>Professores (${professoresTurma.length}):</strong></h6>
-        `;
-
-        if (professoresTurma.length > 0) {
-          html += '<ul class="list-group mb-3">';
-          professoresTurma.forEach(prof => {
-            html += `
-              <li class="list-group-item">
-                ${prof.nome_completo} <small class="text-muted">(${prof.area_especializacao})</small>
-              </li>
-            `;
-          });
-          html += '</ul>';
-        } else {
-          html += '<p class="text-muted">Nenhum professor atribuído.</p>';
-        }
-
-        html += '<hr><h6><strong>Alunos (${alunosDaTurma.length}):</strong></h6>';
-
-        if (alunosDaTurma.length > 0) {
-          html += '<ul class="list-group">';
-          alunosDaTurma.forEach(aluno => {
-            html += `
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                ${aluno.nome_completo}
-                <span class="badge bg-primary">${aluno.media_geral}</span>
-              </li>
-            `;
-          });
-          html += '</ul>';
-        } else {
-          html += '<p class="text-muted">Nenhum aluno matriculado nesta turma.</p>';
-        }
-
-        document.getElementById('detalhesTurmaBody').innerHTML = html;
-        new bootstrap.Modal(document.getElementById('modalDetalhesTurma')).show();
-      } catch (error) {
-        console.error('Erro ao carregar detalhes:', error);
-        feedback.error('Erro ao carregar detalhes da turma');
-      }
-    };
-
-    /**
-     * Limpa formulário
-     */
-    window.limparFormulario = function() {
-      document.getElementById('formTurma').reset();
-      document.getElementById('turmaId').value = '';
-      document.getElementById('tituloModal').textContent = 'Cadastrar Turma';
-      document.getElementById('turmaAno').value = new Date().getFullYear();
-      renderizarProfessores([]);
-    };
-
-    /**
-     * Editar turma
-     */
     window.editarTurma = async function(id) {
       try {
         const turma = await api.get(`/turmas/${id}/`);
@@ -350,86 +268,109 @@
         document.getElementById('turmaAno').value = turma.ano;
         document.getElementById('tituloModal').textContent = 'Editar Turma';
         
-        renderizarProfessores(turma.professores || []);
+        renderizarOpcoesGrade(turma.grade || []);
 
         new bootstrap.Modal(document.getElementById('modalTurma')).show();
       } catch (error) {
-        console.error('Erro ao carregar turma:', error);
-        feedback.error('Erro ao carregar dados da turma');
+        console.error(error);
+        feedback.error('Erro ao carregar turma');
       }
     };
 
-    /**
-     * Excluir turma
-     */
-    window.excluirTurma = async function(id) {
-      const alunosDaTurma = alunos.filter(a => a.turma === id);
-      
-      if (alunosDaTurma.length > 0) {
-        feedback.error('Não é possível excluir turma com alunos matriculados!');
-        return;
-      }
-
-      if (!feedback.confirm('Tem certeza que deseja excluir esta turma?')) {
-        return;
-      }
-
-      try {
-        await api.delete(`/turmas/${id}/`);
-        feedback.success('Turma excluída com sucesso!');
-        carregarDados();
-      } catch (error) {
-        console.error('Erro ao excluir turma:', error);
-        feedback.error('Erro ao excluir turma');
-      }
-    };
-
-    /**
-     * Salvar turma (criar ou atualizar)
-     */
     document.getElementById('formTurma').addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const id = document.getElementById('turmaId').value;
       
-      // Coletar professores selecionados
-      const professoresSelecionados = [];
-      document.querySelectorAll('#turmaProfessores input[type="checkbox"]:checked').forEach(cb => {
-        professoresSelecionados.push(parseInt(cb.value));
+      const gradeDados = [];
+      document.querySelectorAll('.grade-checkbox:checked').forEach(cb => {
+        const [discId, profId] = cb.value.split('-');
+        gradeDados.push({
+          disciplina: parseInt(discId),
+          professor: parseInt(profId)
+        });
       });
 
-      // Validar que tem pelo menos um professor
-      if (professoresSelecionados.length === 0) {
-        feedback.error('Selecione pelo menos um professor!');
+      if (gradeDados.length === 0) {
+        feedback.error('Selecione pelo menos uma disciplina!');
+        return;
+      }
+
+      const discs = gradeDados.map(g => g.disciplina);
+      if (new Set(discs).size !== discs.length) {
+        feedback.error('Mesma disciplina selecionada mais de uma vez!');
         return;
       }
       
       const dados = {
         nome: document.getElementById('turmaNome').value,
         ano: parseInt(document.getElementById('turmaAno').value),
-        professores: professoresSelecionados
+        grade_dados: gradeDados
       };
 
       try {
-        if (id) {
-          await api.put(`/turmas/${id}/`, dados);
-          feedback.success('Turma atualizada com sucesso!');
-        } else {
-          await api.post('/turmas/', dados);
-          feedback.success('Turma cadastrada com sucesso!');
-        }
-
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalTurma'));
-        modal.hide();
+        if (id) await api.put(`/turmas/${id}/`, dados);
+        else await api.post('/turmas/', dados);
+        
+        feedback.success('Turma salva com sucesso!');
+        bootstrap.Modal.getInstance(document.getElementById('modalTurma')).hide();
         carregarDados();
       } catch (error) {
-        console.error('Erro ao salvar turma:', error);
-        feedback.error('Erro ao salvar turma. Verifique os dados.');
+        console.error(error);
+        feedback.error('Erro ao salvar.');
       }
     });
 
-    // Inicializar
+    window.limparFormulario = function() {
+      document.getElementById('formTurma').reset();
+      document.getElementById('turmaId').value = '';
+      document.getElementById('tituloModal').textContent = 'Cadastrar Turma';
+      document.getElementById('turmaAno').value = new Date().getFullYear();
+      renderizarOpcoesGrade([]);
+    };
+
+    window.verDetalhes = async function(id) {
+      try {
+        const turma = await api.get(`/turmas/${id}/`);
+        const alunosDaTurma = alunos.filter(a => a.turma === turma.id);
+        const grade = turma.grade || [];
+
+        let html = `
+          <div class="row"><div class="col-6"><strong>Nome:</strong> ${turma.nome}</div>
+          <div class="col-6"><strong>Ano:</strong> ${turma.ano}</div></div><hr>
+          <h6><strong>Grade Curricular (${grade.length})</strong></h6>`;
+
+        if (grade.length > 0) {
+            html += '<table class="table table-sm table-bordered"><thead><tr class="table-light"><th>Disciplina</th><th>Professor</th></tr></thead><tbody>';
+            grade.forEach(i => html += `<tr><td>${i.disciplina_nome}</td><td>${i.professor_nome}</td></tr>`);
+            html += '</tbody></table>';
+        } else {
+            html += '<p class="text-muted">Sem disciplinas.</p>';
+        }
+
+        html += `<hr><h6><strong>Alunos (${alunosDaTurma.length})</strong></h6>`;
+        if (alunosDaTurma.length > 0) {
+            html += '<ul class="list-group list-group-flush">';
+            alunosDaTurma.forEach(a => html += `<li class="list-group-item">${a.nome_completo}</li>`);
+            html += '</ul>';
+        } else html += '<p class="text-muted">Sem alunos.</p>';
+
+        document.getElementById('detalhesTurmaBody').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('modalDetalhesTurma')).show();
+      } catch (e) { console.error(e); }
+    };
+
+    window.excluirTurma = async function(id) {
+      if (alunos.some(a => a.turma === id)) {
+        feedback.error('Turma tem alunos matriculados!');
+        return;
+      }
+      if (confirm('Deseja excluir?')) {
+        try { await api.delete(`/turmas/${id}/`); feedback.success('Excluído!'); carregarDados(); }
+        catch (e) { feedback.error('Erro ao excluir'); }
+      }
+    };
+
     carregarDados();
-  </script>
+</script>
 </body>
 </html>

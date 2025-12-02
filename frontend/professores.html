@@ -9,7 +9,6 @@
   <link href="assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="index.html">
@@ -60,7 +59,6 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
   <main class="container py-4">
     <div class="row mb-4">
       <div class="col">
@@ -76,7 +74,6 @@
       </div>
     </div>
 
-    <!-- Tabela de Professores -->
     <div class="card shadow-sm">
       <div class="card-body">
         <div class="table-responsive">
@@ -87,7 +84,7 @@
                 <th>Nome Completo</th>
                 <th>CPF</th>
                 <th>Especialização</th>
-                <th>Turma Responsável</th>
+                <th>Disciplinas</th>
                 <th>Data Contratação</th>
                 <th>Status</th>
                 <th class="text-center">Ações</th>
@@ -108,7 +105,6 @@
     </div>
   </main>
 
-  <!-- Modal Professor -->
   <div class="modal fade" id="modalProfessor" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <form class="modal-content" id="formProfessor">
@@ -134,18 +130,23 @@
                      placeholder="12345678901" maxlength="11">
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-4">
+              <label for="professorDataNascimento" class="form-label">Data de Nascimento *</label>
+              <input type="date" class="form-control" id="professorDataNascimento" required>
+            </div>
+
+            <div class="col-md-4">
+              <label for="professorDataContratacao" class="form-label">Data de Contratação *</label>
+              <input type="date" class="form-control" id="professorDataContratacao" required>
+            </div>
+
+            <div class="col-md-4">
               <label for="professorEspecializacao" class="form-label">Área de Especialização *</label>
               <input type="text" class="form-control" id="professorEspecializacao" required 
                      placeholder="Ex: Matemática">
             </div>
 
-            <div class="col-md-6">
-              <label for="professorDataContratacao" class="form-label">Data de Contratação *</label>
-              <input type="date" class="form-control" id="professorDataContratacao" required>
-            </div>
-
-            <div class="col-md-6">
+            <div class="col-md-12">
               <label for="professorAtivo" class="form-label">Status</label>
               <select class="form-select" id="professorAtivo" required>
                 <option value="true">Ativo</option>
@@ -181,15 +182,17 @@
     let disciplinas = [];
     let modalInstance = null;
 
-    /**
-     * Carrega lista de professores
-     */
     async function listarProfessores() {
       try {
-        const professores = await api.get('/professores/');
+        const [listaProfessores, listaDisciplinas] = await Promise.all([
+             api.get('/professores/'),
+             api.get('/disciplinas/')
+        ]);
+        
+        disciplinas = listaDisciplinas;
         const tbody = document.getElementById('tbodyProfessores');
 
-        if (professores.length === 0) {
+        if (listaProfessores.length === 0) {
           tbody.innerHTML = `
             <tr>
               <td colspan="8" class="text-center text-muted">
@@ -200,7 +203,7 @@
           return;
         }
 
-        tbody.innerHTML = professores.map(professor => {
+        tbody.innerHTML = listaProfessores.map(professor => {
           const disciplinasProfessor = professor.disciplinas || [];
           const disciplinasNomes = disciplinasProfessor.map(discId => {
             const disc = disciplinas.find(d => d.id === discId);
@@ -237,9 +240,6 @@
       }
     }
 
-    /**
-     * Carrega disciplinas para os checkboxes
-     */
     async function carregarDisciplinas() {
       try {
         disciplinas = await api.get('/disciplinas/');
@@ -250,9 +250,6 @@
       }
     }
 
-    /**
-     * Renderiza checkboxes de disciplinas
-     */
     function renderizarDisciplinas(selecionadas = []) {
       const container = document.getElementById('professorDisciplinas');
       
@@ -272,9 +269,6 @@
       `).join('');
     }
 
-    /**
-     * Limpa formulário
-     */
     window.limparFormulario = function() {
       document.getElementById('formProfessor').reset();
       document.getElementById('professorId').value = '';
@@ -283,9 +277,6 @@
       renderizarDisciplinas([]);
     };
 
-    /**
-     * Editar professor
-     */
     window.editarProfessor = async function(id) {
       try {
         const professor = await api.get(`/professores/${id}/`);
@@ -293,8 +284,11 @@
         document.getElementById('professorId').value = professor.id;
         document.getElementById('professorNome').value = professor.nome_completo;
         document.getElementById('professorCpf').value = professor.cpf;
-        document.getElementById('professorEspecializacao').value = professor.area_especializacao;
+        
+        document.getElementById('professorDataNascimento').value = professor.data_nascimento;
         document.getElementById('professorDataContratacao').value = professor.data_contratacao;
+        
+        document.getElementById('professorEspecializacao').value = professor.area_especializacao;
         document.getElementById('professorAtivo').value = professor.ativo.toString();
         document.getElementById('tituloModal').textContent = 'Editar Professor';
         
@@ -308,9 +302,6 @@
       }
     };
 
-    /**
-     * Excluir professor
-     */
     window.excluirProfessor = async function(id) {
       if (!feedback.confirm('Tem certeza que deseja excluir este professor?')) {
         return;
@@ -326,21 +317,16 @@
       }
     };
 
-    /**
-     * Salvar professor (criar ou atualizar)
-     */
     document.getElementById('formProfessor').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const id = document.getElementById('professorId').value;
       
-      // Coletar disciplinas selecionadas
       const disciplinasSelecionadas = [];
       document.querySelectorAll('#professorDisciplinas input[type="checkbox"]:checked').forEach(cb => {
         disciplinasSelecionadas.push(parseInt(cb.value));
       });
 
-      // Validar que tem pelo menos uma disciplina
       if (disciplinasSelecionadas.length === 0) {
         feedback.error('Selecione pelo menos uma disciplina!');
         return;
@@ -350,6 +336,7 @@
         nome_completo: document.getElementById('professorNome').value,
         cpf: document.getElementById('professorCpf').value,
         area_especializacao: document.getElementById('professorEspecializacao').value,
+        data_nascimento: document.getElementById('professorDataNascimento').value,
         data_contratacao: document.getElementById('professorDataContratacao').value,
         disciplinas: disciplinasSelecionadas,
         ativo: document.getElementById('professorAtivo').value === 'true'
@@ -369,25 +356,28 @@
         listarProfessores();
       } catch (error) {
         console.error('Erro ao salvar professor:', error);
-        feedback.error('Erro ao salvar professor. Verifique os dados.');
+        
+        if (error.data_nascimento) {
+            feedback.error(error.data_nascimento[0]);
+        } else if (error.data_contratacao) {
+            feedback.error(error.data_contratacao[0]);
+        } else if (error.cpf) {
+            feedback.error("Erro no CPF: " + error.cpf[0]);
+        } else {
+            feedback.error('Erro ao salvar professor. Verifique os dados.');
+        }
       }
     });
 
-    /**
-     * Formatar CPF
-     */
     function formatarCPF(cpf) {
       return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     }
 
-    /**
-     * Formatar data
-     */
     function formatarData(data) {
+      if (!data) return '-';
       return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
     }
 
-    // Inicializar
     carregarDisciplinas().then(listarProfessores);
   </script>
 </body>

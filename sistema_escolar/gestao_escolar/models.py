@@ -1,9 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
-# Create your models here.
-
-# Modelo para turmas e materias
 
 class Disciplina(models.Model):
     nome = models.CharField(max_length=100, unique=True)
@@ -15,19 +12,18 @@ class Disciplina(models.Model):
     def __str__(self):
         return self.nome
 
-# Modelos com depêndencia 
-
 class Professor(models.Model):
     nome_completo = models.CharField(max_length=200)
     cpf = models.CharField(max_length=11, unique=True)
+    data_nascimento = models.DateField(null=True, blank=True) 
     data_contratacao = models.DateField()
     area_especializacao = models.CharField(max_length=100)
     ativo = models.BooleanField(default=True)
 
     disciplinas = models.ManyToManyField(
-        Disciplina,
+        'Disciplina',
         related_name='professores',
-        help_text='Disciplinas que o professor leciona'
+        help_text='Disciplinas que o professor está apto a lecionar'
     )
 
     class Meta:
@@ -41,31 +37,27 @@ class Turma(models.Model):
     nome = models.CharField(max_length=100)
     ano = models.IntegerField()
 
-    professores = models.ManyToManyField(
-        Professor,
-        related_name='turmas',
-        help_text='Professores que lecionam nesta turma'
-    )
-
     class Meta:
         verbose_name = "Turma"
         verbose_name_plural = "Turmas"
 
     def __str__(self):
         return f"{self.nome} - {self.ano}"
-    
-    def clean(self):
-        # Validação será feita após salvar, pois ManyToMany precisa de um ID existente
-        super().clean()
-    
-    def save(self, *args, **kwargs):
-        is_new = self.pk is None
-        super().save(*args, **kwargs)
-        
-        # Validar que tem pelo menos 1 professor (apenas para turmas já existentes)
-        if not is_new and self.professores.count() == 0:
-            raise ValidationError('Uma turma deve ter pelo menos 1 professor.')
-    
+
+class TurmaDisciplina(models.Model):
+
+    turma = models.ForeignKey(Turma, on_delete=models.CASCADE, related_name='grade')
+    disciplina = models.ForeignKey(Disciplina, on_delete=models.CASCADE)
+    professor = models.ForeignKey(Professor, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = "Grade Curricular"
+        verbose_name_plural = "Grades Curriculares"
+        unique_together = ['turma', 'disciplina']
+
+    def __str__(self):
+        return f"{self.turma} - {self.disciplina} ({self.professor})"
+
 class Aluno(models.Model):
     nome_completo = models.CharField(max_length=200)
     cpf = models.CharField(max_length=11, unique=True)
@@ -88,13 +80,11 @@ class Aluno(models.Model):
     
     @property
     def media_geral(self):
-        """Calcula a média geral do aluno com base em todas as suas notas"""
         from django.db.models import Avg
         resultado = self.notas.aggregate(Avg('valor'))
         return resultado['valor__avg'] or 0.0
     
     def media_por_disciplina(self):
-        """Retorna a média do aluno por disciplina"""
         from django.db.models import Avg
         return self.notas.values('disciplina__nome').annotate(media=Avg('valor'))
 

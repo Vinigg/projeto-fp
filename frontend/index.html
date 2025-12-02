@@ -9,7 +9,6 @@
   <link href="assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="index.html">
@@ -60,7 +59,6 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
   <main class="container py-4">
     <div class="row mb-4">
       <div class="col">
@@ -71,12 +69,9 @@
       </div>
     </div>
 
-    <!-- Cards de Resumo -->
     <div class="row g-3 mb-4" id="dashboardCards">
-      <!-- Cards serão inseridos via JavaScript -->
     </div>
 
-    <!-- Informações Adicionais -->
     <div class="row g-3">
       <div class="col-md-6">
         <div class="card shadow-sm">
@@ -117,7 +112,6 @@
     </div>
   </main>
 
-  <!-- Footer -->
   <footer class="mt-5 py-3 bg-light border-top">
     <div class="container text-center text-muted">
       <small>Sistema de Gestão Escolar - 2025</small>
@@ -128,12 +122,9 @@
   <script type="module">
     import { api, feedback } from './assets/js/api.js';
 
-    /**
-     * Carrega estatísticas do dashboard
-     */
+
     async function carregarDashboard() {
       try {
-        // Buscar dados em paralelo
         const [alunos, professores, turmas, disciplinas, notas] = await Promise.all([
           api.get('/alunos/'),
           api.get('/professores/'),
@@ -142,12 +133,10 @@
           api.get('/notas/')
         ]);
 
-        // Calcular média geral das notas
         const mediaGeral = notas.length > 0
           ? (notas.reduce((sum, nota) => sum + parseFloat(nota.valor), 0) / notas.length).toFixed(2)
           : '0.00';
 
-        // Dados dos cards
         const cards = [
           {
             titulo: 'Alunos',
@@ -193,7 +182,6 @@
           }
         ];
 
-        // Renderizar cards
         const container = document.getElementById('dashboardCards');
         container.innerHTML = cards.map(card => `
           <div class="col-md-4 col-lg-2">
@@ -208,7 +196,6 @@
           </div>
         `).join('');
 
-        // Renderizar últimas atividades
         renderizarAtividades(alunos, notas);
 
       } catch (error) {
@@ -217,16 +204,12 @@
       }
     }
 
-    /**
-     * Renderiza últimas atividades
-     */
+
     function renderizarAtividades(alunos, notas) {
       const container = document.getElementById('atividadesRecentes');
       
-      // Últimos 5 alunos cadastrados
       const ultimosAlunos = alunos.slice(-5).reverse();
       
-      // Últimas 5 notas lançadas
       const ultimasNotas = notas.slice(-5).reverse();
 
       let html = '<h6 class="mb-3">Últimos Alunos Cadastrados</h6>';
@@ -252,7 +235,6 @@
       container.innerHTML = html;
     }
 
-    // Inicializar dashboard
     carregarDashboard();
   </script>
 </body>

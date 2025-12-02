@@ -9,7 +9,6 @@
   <link href="assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="index.html">
@@ -60,7 +59,6 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
   <main class="container py-4">
     <div class="row mb-4">
       <div class="col">
@@ -76,7 +74,6 @@
       </div>
     </div>
 
-    <!-- Filtros -->
     <div class="card mb-4 shadow-sm">
       <div class="card-body">
         <h6 class="card-title mb-3">
@@ -104,7 +101,6 @@
       </div>
     </div>
 
-    <!-- Tabela de Notas -->
     <div class="card shadow-sm">
       <div class="card-body">
         <div class="table-responsive">
@@ -134,7 +130,6 @@
     </div>
   </main>
 
-  <!-- Modal Nota -->
   <div class="modal fade" id="modalNota" tabindex="-1">
     <div class="modal-dialog">
       <form class="modal-content" id="formNota">
@@ -188,45 +183,31 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script type="module">
+<script type="module">
     import { api, feedback } from './assets/js/api.js';
 
     let notas = [];
     let alunos = [];
     let disciplinas = [];
+    let turmas = [];
 
-    /**
-     * Carrega lista de notas
-     */
     async function listarNotas(filtroAlunoId = '', filtroDisciplinaId = '') {
       try {
         let notasFiltradas = [...notas];
 
-        // Aplicar filtros
-        if (filtroAlunoId) {
-          notasFiltradas = notasFiltradas.filter(n => n.aluno == filtroAlunoId);
-        }
-        if (filtroDisciplinaId) {
-          notasFiltradas = notasFiltradas.filter(n => n.disciplina == filtroDisciplinaId);
-        }
+        if (filtroAlunoId) notasFiltradas = notasFiltradas.filter(n => n.aluno == filtroAlunoId);
+        if (filtroDisciplinaId) notasFiltradas = notasFiltradas.filter(n => n.disciplina == filtroDisciplinaId);
 
         const tbody = document.getElementById('tbodyNotas');
 
         if (notasFiltradas.length === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="6" class="text-center text-muted">
-                <i class="bi bi-inbox"></i> Nenhuma nota encontrada
-              </td>
-            </tr>
-          `;
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted"><i class="bi bi-inbox"></i> Nenhuma nota encontrada</td></tr>`;
           return;
         }
 
         tbody.innerHTML = notasFiltradas.map(nota => {
           const aluno = alunos.find(a => a.id === nota.aluno);
           const disciplina = disciplinas.find(d => d.id === nota.disciplina);
-          
           const notaColor = nota.valor >= 7 ? 'success' : nota.valor >= 5 ? 'warning' : 'danger';
 
           return `
@@ -237,122 +218,124 @@
               <td><span class="badge bg-${notaColor} fs-6">${nota.valor}</span></td>
               <td>${formatarData(nota.data_avaliacao)}</td>
               <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary" onclick="editarNota(${nota.id})" title="Editar">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="excluirNota(${nota.id})" title="Excluir">
-                  <i class="bi bi-trash"></i>
-                </button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editarNota(${nota.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="excluirNota(${nota.id})" title="Excluir"><i class="bi bi-trash"></i></button>
               </td>
             </tr>
           `;
         }).join('');
       } catch (error) {
         console.error('Erro ao listar notas:', error);
-        feedback.error('Erro ao carregar lista de notas');
       }
     }
 
-    /**
-     * Carrega dados necessários
-     */
     async function carregarDados() {
       try {
-        [notas, alunos, disciplinas] = await Promise.all([
+        [notas, alunos, disciplinas, turmas] = await Promise.all([
           api.get('/notas/'),
           api.get('/alunos/'),
-          api.get('/disciplinas/')
+          api.get('/disciplinas/'),
+          api.get('/turmas/') 
         ]);
 
-        // Preencher selects de filtros
-        const filtroAluno = document.getElementById('filtroAluno');
-        filtroAluno.innerHTML = '<option value="">Todos</option>' +
+        document.getElementById('filtroAluno').innerHTML = '<option value="">Todos</option>' +
           alunos.map(a => `<option value="${a.id}">${a.nome_completo}</option>`).join('');
 
-        const filtroDisciplina = document.getElementById('filtroDisciplina');
-        filtroDisciplina.innerHTML = '<option value="">Todas</option>' +
+        document.getElementById('filtroDisciplina').innerHTML = '<option value="">Todas</option>' +
           disciplinas.map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
 
-        // Preencher selects do modal
-        const notaAluno = document.getElementById('notaAluno');
-        notaAluno.innerHTML = '<option value="">Selecione um aluno</option>' +
+        const selectAlunoModal = document.getElementById('notaAluno');
+        selectAlunoModal.innerHTML = '<option value="">Selecione um aluno</option>' +
           alunos.map(a => `<option value="${a.id}">${a.nome_completo}</option>`).join('');
 
-        const notaDisciplina = document.getElementById('notaDisciplina');
-        notaDisciplina.innerHTML = '<option value="">Selecione uma disciplina</option>' +
-          disciplinas.map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
+        selectAlunoModal.addEventListener('change', atualizarDisciplinasDoAluno);
 
         listarNotas();
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        feedback.error('Erro ao carregar dados necessários');
+        console.error(error);
+        feedback.error('Erro ao carregar dados');
       }
     }
 
-    /**
-     * Aplicar filtros
-     */
+    function atualizarDisciplinasDoAluno() {
+        const alunoId = document.getElementById('notaAluno').value;
+        const selectDisciplina = document.getElementById('notaDisciplina');
+        
+        if (!alunoId) {
+            selectDisciplina.innerHTML = '<option value="">Selecione um aluno primeiro</option>';
+            selectDisciplina.disabled = true;
+            return;
+        }
+
+        const aluno = alunos.find(a => a.id == alunoId);
+        if (!aluno) return;
+
+        const turma = turmas.find(t => t.id == aluno.turma);
+        
+        if (turma && turma.grade && turma.grade.length > 0) {
+            selectDisciplina.disabled = false;
+            
+            let optionsHtml = '<option value="">Selecione uma disciplina</option>';
+            
+            turma.grade.forEach(item => {
+                optionsHtml += `<option value="${item.disciplina}">${item.disciplina_nome}</option>`;
+            });
+
+            selectDisciplina.innerHTML = optionsHtml;
+        } else {
+            selectDisciplina.innerHTML = '<option value="">Aluno sem disciplinas na grade</option>';
+            selectDisciplina.disabled = true;
+        }
+    }
+
     window.aplicarFiltros = function() {
-      const alunoId = document.getElementById('filtroAluno').value;
-      const disciplinaId = document.getElementById('filtroDisciplina').value;
-      listarNotas(alunoId, disciplinaId);
+      listarNotas(document.getElementById('filtroAluno').value, document.getElementById('filtroDisciplina').value);
     };
 
-    /**
-     * Limpa formulário
-     */
     window.limparFormulario = function() {
       document.getElementById('formNota').reset();
       document.getElementById('notaId').value = '';
       document.getElementById('tituloModal').textContent = 'Lançar Nota';
       document.getElementById('notaDataAvaliacao').value = new Date().toISOString().split('T')[0];
+      
+      const selDisc = document.getElementById('notaDisciplina');
+      selDisc.innerHTML = '<option value="">Selecione um aluno primeiro</option>';
+      selDisc.disabled = true;
     };
 
-    /**
-     * Editar nota
-     */
     window.editarNota = async function(id) {
       try {
         const nota = await api.get(`/notas/${id}/`);
         
         document.getElementById('notaId').value = nota.id;
-        document.getElementById('notaAluno').value = nota.aluno;
+        
+        const selectAluno = document.getElementById('notaAluno');
+        selectAluno.value = nota.aluno;
+        
+        atualizarDisciplinasDoAluno();
+
         document.getElementById('notaDisciplina').value = nota.disciplina;
+        
         document.getElementById('notaValor').value = nota.valor;
         document.getElementById('notaDataAvaliacao').value = nota.data_avaliacao;
         document.getElementById('tituloModal').textContent = 'Editar Nota';
 
         new bootstrap.Modal(document.getElementById('modalNota')).show();
       } catch (error) {
-        console.error('Erro ao carregar nota:', error);
-        feedback.error('Erro ao carregar dados da nota');
+        console.error(error);
+        feedback.error('Erro ao carregar nota');
       }
     };
 
-    /**
-     * Excluir nota
-     */
     window.excluirNota = async function(id) {
-      if (!feedback.confirm('Tem certeza que deseja excluir esta nota?')) {
-        return;
-      }
-
-      try {
-        await api.delete(`/notas/${id}/`);
-        feedback.success('Nota excluída com sucesso!');
-        carregarDados();
-      } catch (error) {
-        console.error('Erro ao excluir nota:', error);
-        feedback.error('Erro ao excluir nota');
+      if (confirm('Excluir nota?')) {
+        try { await api.delete(`/notas/${id}/`); feedback.success('Excluída!'); carregarDados(); }
+        catch (e) { feedback.error('Erro ao excluir'); }
       }
     };
 
-    /**
-     * Salvar nota (criar ou atualizar)
-     */
     document.getElementById('formNota').addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const id = document.getElementById('notaId').value;
       const dados = {
         aluno: parseInt(document.getElementById('notaAluno').value),
@@ -362,32 +345,25 @@
       };
 
       try {
-        if (id) {
-          await api.put(`/notas/${id}/`, dados);
-          feedback.success('Nota atualizada com sucesso!');
-        } else {
-          await api.post('/notas/', dados);
-          feedback.success('Nota lançada com sucesso!');
-        }
-
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNota'));
-        modal.hide();
+        if (id) await api.put(`/notas/${id}/`, dados);
+        else await api.post('/notas/', dados);
+        
+        feedback.success('Nota salva com sucesso!');
+        bootstrap.Modal.getInstance(document.getElementById('modalNota')).hide();
         carregarDados();
       } catch (error) {
-        console.error('Erro ao salvar nota:', error);
-        feedback.error('Erro ao salvar nota. Verifique os dados.');
+        console.error(error);
+        if (error.disciplina) {
+             feedback.error(error.disciplina); 
+        } else {
+             feedback.error('Erro ao salvar nota.');
+        }
       }
     });
 
-    /**
-     * Formatar data
-     */
-    function formatarData(data) {
-      return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
-    }
+    function formatarData(data) { return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR'); }
 
-    // Inicializar
     carregarDados();
-  </script>
+</script>
 </body>
 </html>

@@ -9,7 +9,6 @@
   <link href="assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="index.html">
@@ -60,7 +59,6 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
   <main class="container py-4">
     <div class="row mb-4">
       <div class="col">
@@ -76,7 +74,6 @@
       </div>
     </div>
 
-    <!-- Tabela de Alunos -->
     <div class="card shadow-sm">
       <div class="card-body">
         <div class="table-responsive">
@@ -108,7 +105,6 @@
     </div>
   </main>
 
-  <!-- Modal Aluno -->
   <div class="modal fade" id="modalAluno" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <form class="modal-content" id="formAluno">
@@ -175,9 +171,7 @@
     let turmas = [];
     let modalInstance = null;
 
-    /**
-     * Carrega lista de alunos
-     */
+
     async function listarAlunos() {
       try {
         const alunos = await api.get('/alunos/');
@@ -228,9 +222,7 @@
       }
     }
 
-    /**
-     * Carrega turmas para o select
-     */
+
     async function carregarTurmas() {
       try {
         turmas = await api.get('/turmas/');
@@ -243,9 +235,7 @@
       }
     }
 
-    /**
-     * Limpa formulário
-     */
+
     window.limparFormulario = function() {
       document.getElementById('formAluno').reset();
       document.getElementById('alunoId').value = '';
@@ -253,9 +243,7 @@
       document.getElementById('alunoStatus').value = 'Ativo';
     };
 
-    /**
-     * Editar aluno
-     */
+
     window.editarAluno = async function(id) {
       try {
         const aluno = await api.get(`/alunos/${id}/`);
@@ -276,9 +264,7 @@
       }
     };
 
-    /**
-     * Excluir aluno
-     */
+
     window.excluirAluno = async function(id) {
       if (!feedback.confirm('Tem certeza que deseja excluir este aluno?')) {
         return;
@@ -294,9 +280,7 @@
       }
     };
 
-    /**
-     * Salvar aluno (criar ou atualizar)
-     */
+
     document.getElementById('formAluno').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -327,21 +311,16 @@
       }
     });
 
-    /**
-     * Formatar CPF
-     */
+
     function formatarCPF(cpf) {
       return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     }
 
-    /**
-     * Formatar data
-     */
+
     function formatarData(data) {
       return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
     }
 
-    // Inicializar
     carregarTurmas().then(listarAlunos);
   </script>
 </body>

@@ -9,7 +9,6 @@
   <link href="assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="index.html">
@@ -60,7 +59,6 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
   <main class="container py-4">
     <div class="row mb-4">
       <div class="col">
@@ -71,7 +69,6 @@
       </div>
     </div>
 
-    <!-- Seletor de Relatório -->
     <div class="card mb-4 shadow-sm">
       <div class="card-body">
         <h6 class="card-title mb-3">
@@ -96,7 +93,6 @@
       </div>
     </div>
 
-    <!-- Área de Exibição do Relatório -->
     <div id="relatorioContainer">
       <div class="alert alert-info text-center">
         <i class="bi bi-info-circle"></i> Selecione um relatório acima para visualizar
@@ -114,9 +110,6 @@
     let disciplinas = [];
     let notas = [];
 
-    /**
-     * Carrega todos os dados
-     */
     async function carregarDados() {
       try {
         [alunos, professores, turmas, disciplinas, notas] = await Promise.all([
@@ -132,9 +125,6 @@
       }
     }
 
-    /**
-     * Gera relatório selecionado
-     */
     window.gerarRelatorio = async function() {
       const tipo = document.getElementById('tipoRelatorio').value;
       const container = document.getElementById('relatorioContainer');
@@ -168,9 +158,6 @@
       }
     };
 
-    /**
-     * Relatório: Estatísticas Gerais
-     */
     function gerarRelatorioGeral() {
       const mediaGeral = notas.length > 0
         ? (notas.reduce((sum, n) => sum + parseFloat(n.valor), 0) / notas.length).toFixed(2)
@@ -236,9 +223,6 @@
       `;
     }
 
-    /**
-     * Relatório: Alunos por Turma
-     */
     function gerarRelatorioAlunosPorTurma() {
       return `
         <div class="card shadow-sm">
@@ -289,68 +273,101 @@
       `;
     }
 
-    /**
-     * Relatório: Notas por Disciplina
-     */
     function gerarRelatorioNotasPorDisciplina() {
       return `
         <div class="card shadow-sm">
           <div class="card-header bg-info text-white">
-            <h5 class="mb-0"><i class="bi bi-journal-text"></i> Notas por Disciplina</h5>
+            <h5 class="mb-0"><i class="bi bi-journal-text"></i> Desempenho por Disciplina</h5>
           </div>
           <div class="card-body">
             ${disciplinas.map(disciplina => {
               const notasDisciplina = notas.filter(n => n.disciplina === disciplina.id);
-              const media = notasDisciplina.length > 0
+
+              const alunosIds = [...new Set(notasDisciplina.map(n => n.aluno))];
+              
+              let aprovados = 0;
+              let recuperacao = 0;
+              let reprovados = 0;
+
+              alunosIds.forEach(alunoId => {
+                  const notasDoAluno = notasDisciplina.filter(n => n.aluno === alunoId);
+                  const soma = notasDoAluno.reduce((acc, curr) => acc + parseFloat(curr.valor), 0);
+                  const mediaAluno = soma / notasDoAluno.length;
+
+                  if (mediaAluno >= 7) {
+                      aprovados++;
+                  } else if (mediaAluno >= 5) {
+                      recuperacao++;
+                  } else {
+                      reprovados++;
+                  }
+              });
+
+              const mediaGeralNotas = notasDisciplina.length > 0
                 ? (notasDisciplina.reduce((sum, n) => sum + parseFloat(n.valor), 0) / notasDisciplina.length).toFixed(2)
                 : '0.00';
-              
-              const aprovados = notasDisciplina.filter(n => parseFloat(n.valor) >= 7).length;
-              const recuperacao = notasDisciplina.filter(n => parseFloat(n.valor) >= 5 && parseFloat(n.valor) < 7).length;
-              const reprovados = notasDisciplina.filter(n => parseFloat(n.valor) < 5).length;
 
               return `
-                <div class="mb-4">
-                  <h6 class="bg-light p-2 rounded">
-                    <i class="bi bi-book"></i> ${disciplina.nome}
-                    <span class="badge bg-secondary float-end">${notasDisciplina.length} notas</span>
+                <div class="mb-4 border-bottom pb-4">
+                  <h6 class="bg-light p-2 rounded d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-book-fill text-info"></i> <strong>${disciplina.nome}</strong>
+                    </span>
+                    <span class="badge bg-secondary">${alunosIds.length} Alunos Avaliados</span>
                   </h6>
-                  ${notasDisciplina.length > 0 ? `
-                    <div class="row g-3 mb-3">
+                  
+                  ${alunosIds.length > 0 ? `
+                    <div class="row g-3 mt-1">
                       <div class="col-md-3">
-                        <div class="card bg-light">
+                        <div class="card h-100 border-light bg-light">
                           <div class="card-body text-center p-2">
-                            <small>Média</small>
-                            <h5 class="mb-0">${media}</h5>
+                            <small class="text-muted d-block mb-1">Média das Notas</small>
+                            <h4 class="mb-0 text-dark">${mediaGeralNotas}</h4>
+                            <small class="text-muted" style="font-size: 0.75rem">${notasDisciplina.length} notas lançadas</small>
                           </div>
                         </div>
                       </div>
+
                       <div class="col-md-3">
-                        <div class="card bg-success text-white">
+                        <div class="card h-100 border-success">
                           <div class="card-body text-center p-2">
-                            <small>Aprovados (≥7)</small>
-                            <h5 class="mb-0">${aprovados}</h5>
+                            <small class="text-success d-block mb-1 fw-bold">Aprovados (Média ≥ 7)</small>
+                            <h4 class="mb-0 text-success">${aprovados}</h4>
+                            <div class="progress mt-2" style="height: 5px;">
+                              <div class="progress-bar bg-success" style="width: ${(aprovados/alunosIds.length)*100}%"></div>
+                            </div>
+                            <small class="text-muted">${((aprovados/alunosIds.length)*100).toFixed(0)}%</small>
                           </div>
                         </div>
                       </div>
+
                       <div class="col-md-3">
-                        <div class="card bg-warning">
+                        <div class="card h-100 border-warning">
                           <div class="card-body text-center p-2">
-                            <small>Recuperação (5-6.9)</small>
-                            <h5 class="mb-0">${recuperacao}</h5>
+                            <small class="text-warning d-block mb-1 fw-bold">Recuperação (5 - 6.9)</small>
+                            <h4 class="mb-0 text-warning">${recuperacao}</h4>
+                            <div class="progress mt-2" style="height: 5px;">
+                              <div class="progress-bar bg-warning" style="width: ${(recuperacao/alunosIds.length)*100}%"></div>
+                            </div>
+                            <small class="text-muted">${((recuperacao/alunosIds.length)*100).toFixed(0)}%</small>
                           </div>
                         </div>
                       </div>
+
                       <div class="col-md-3">
-                        <div class="card bg-danger text-white">
+                        <div class="card h-100 border-danger">
                           <div class="card-body text-center p-2">
-                            <small>Reprovados (&lt;5)</small>
-                            <h5 class="mb-0">${reprovados}</h5>
+                            <small class="text-danger d-block mb-1 fw-bold">Reprovados (< 5)</small>
+                            <h4 class="mb-0 text-danger">${reprovados}</h4>
+                            <div class="progress mt-2" style="height: 5px;">
+                              <div class="progress-bar bg-danger" style="width: ${(reprovados/alunosIds.length)*100}%"></div>
+                            </div>
+                            <small class="text-muted">${((reprovados/alunosIds.length)*100).toFixed(0)}%</small>
                           </div>
                         </div>
                       </div>
                     </div>
-                  ` : '<p class="text-muted">Nenhuma nota lançada</p>'}
+                  ` : '<div class="alert alert-light text-center text-muted my-2"><small>Nenhuma nota registrada para alunos nesta disciplina.</small></div>'}
                 </div>
               `;
             }).join('')}
@@ -359,9 +376,6 @@
       `;
     }
 
-    /**
-     * Relatório: Desempenho dos Alunos
-     */
     function gerarRelatorioDesempenhoAlunos() {
       const alunosComNotas = alunos.map(aluno => {
         const notasAluno = notas.filter(n => n.aluno === aluno.id);
@@ -421,41 +435,70 @@
       `;
     }
 
-    /**
-     * Relatório: Professores e Turmas
-     */
     function gerarRelatorioProfessoresTurmas() {
       return `
         <div class="card shadow-sm">
           <div class="card-header bg-danger text-white">
-            <h5 class="mb-0"><i class="bi bi-person-badge"></i> Professores e Turmas</h5>
+            <h5 class="mb-0"><i class="bi bi-person-badge"></i> Carga Horária e Turmas</h5>
           </div>
           <div class="card-body">
             <div class="table-responsive">
-              <table class="table table-striped table-hover">
+              <table class="table table-striped table-hover align-middle">
                 <thead>
                   <tr>
-                    <th>Nome</th>
+                    <th>Professor</th>
                     <th>Especialização</th>
-                    <th>Turma Responsável</th>
-                    <th>Alunos</th>
-                    <th>Data Contratação</th>
-                    <th>Status</th>
+                    <th style="width: 40%">Turmas e Disciplinas</th>
+                    <th class="text-center">Total Alunos</th>
+                    <th class="text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${professores.map(professor => {
-                    const turma = turmas.find(t => t.id === professor.turma_responsavel);
-                    const alunosDaTurma = turma ? alunos.filter(a => a.turma === turma.id).length : 0;
+                    const turmasDoProfessor = turmas.filter(t => {
+                        const grade = t.grade || [];
+                        return grade.some(item => item.professor === professor.id);
+                    });
+
+                    let totalAlunosImpactados = 0;
+                    
+                    const listaTurmasHtml = turmasDoProfessor.map(turma => {
+                        const qtdAlunos = alunos.filter(a => a.turma === turma.id).length;
+                        totalAlunosImpactados += qtdAlunos;
+
+                        const disciplinasNestaTurma = (turma.grade || [])
+                            .filter(g => g.professor === professor.id)
+                            .map(g => g.disciplina_nome)
+                            .join(', ');
+
+                        return `
+                            <div class="d-flex justify-content-between border-bottom mb-1 pb-1">
+                                <small><strong>${turma.nome}</strong> <span class="text-muted">(${disciplinasNestaTurma})</span></small>
+                                <span class="badge bg-light text-dark border ms-2">${qtdAlunos} alunos</span>
+                            </div>
+                        `;
+                    }).join('');
 
                     return `
                       <tr>
-                        <td><strong>${professor.nome_completo}</strong></td>
+                        <td>
+                            <strong>${professor.nome_completo}</strong>
+                            <div class="small text-muted">${formatarCPF(professor.cpf)}</div>
+                        </td>
                         <td><span class="badge bg-info">${professor.area_especializacao}</span></td>
-                        <td>${turma ? `${turma.nome} - ${turma.ano}` : '<em class="text-muted">Nenhuma</em>'}</td>
-                        <td>${alunosDaTurma > 0 ? `<span class="badge bg-primary">${alunosDaTurma}</span>` : '-'}</td>
-                        <td>${formatarData(professor.data_contratacao)}</td>
-                        <td><span class="badge bg-${professor.ativo ? 'success' : 'secondary'}">${professor.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                        <td>
+                            ${listaTurmasHtml || '<em class="text-muted small">Nenhuma turma atribuída</em>'}
+                        </td>
+                        <td class="text-center">
+                            ${totalAlunosImpactados > 0 
+                                ? `<span class="badge bg-primary fs-6">${totalAlunosImpactados}</span>` 
+                                : '<span class="text-muted">-</span>'}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-${professor.ativo ? 'success' : 'secondary'}">
+                                ${professor.ativo ? 'Ativo' : 'Inativo'}
+                            </span>
+                        </td>
                       </tr>
                     `;
                   }).join('')}
@@ -467,21 +510,14 @@
       `;
     }
 
-    /**
-     * Formatar CPF
-     */
     function formatarCPF(cpf) {
       return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     }
 
-    /**
-     * Formatar data
-     */
     function formatarData(data) {
       return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
     }
 
-    // Carregar dados iniciais
     carregarDados();
   </script>
 </body>
